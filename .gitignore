@@ -1,0 +1,33 @@
+node_modules/
+.tmp-render/
+.debug/
+*.tgz
+*.log
+.DS_Store
+Thumbs.db
+
+# local helper scripts (machine-specific, not useful to users)
+/rollback-if-boot-fails.cmd
+/scripts/restart-dsh.ps1
+/scripts/restart-later.vbs
+
+# secrets / local credentials
+.env
+.env.*
+!.env.example
+.npmrc
+*.pem
+*.key
+*.p12
+*.sqlite
+*.db
+Cookies*
+
+# build / cache / editor
+dist/
+build/
+out/
+coverage/
+.vscode/
+.idea/
+*.tsbuildinfo

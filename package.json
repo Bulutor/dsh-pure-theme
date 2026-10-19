@@ -1,0 +1,69 @@
+{
+  "name": "dsh-pure-theme",
+  "version": "0.2.0",
+  "description": "Minimalist theming for DeepSeek Harness: edit component colours, save named themes, and import theme files from one quiet settings page.",
+  "type": "module",
+  "license": "MIT",
+  "author": "dsh-pure-theme contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bulutor/dsh-pure-theme.git"
+  },
+  "homepage": "https://github.com/Bulutor/dsh-pure-theme#readme",
+  "bugs": {
+    "url": "https://github.com/Bulutor/dsh-pure-theme/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "theme",
+    "minimalist",
+    "appearance",
+    "palette"
+  ],
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "locale/*.json",
+    "src",
+    "scripts/build.mjs",
+    "docs",
+    "examples",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.0-rc.2"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    },
+    "compatibility": {
+      "dshReleases": {
+        "0.2.1-rc.2": "compatible"
+      }
+    }
+  }
+}
