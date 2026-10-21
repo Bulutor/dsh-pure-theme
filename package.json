@@ -1,7 +1,7 @@
 {
   "name": "dsh-pure-theme",
-  "version": "0.3.0",
-  "description": "Theme editor for DeepSeek Harness: edit component colours, save named themes, and import theme files.",
+  "version": "0.4.0",
+  "description": "Theme editor for DeepSeek Harness: edit dark and light component colours, save named themes, and import theme files.",
   "type": "module",
   "license": "MIT",
   "author": "dsh-pure-theme contributors",

@@ -33,8 +33,8 @@ url: https://github.com/<你>/dsh-pure-theme
 name: <你>/dsh-pure-theme
 category: theme
 description:
-  en: Theme editor for DeepSeek Harness — edit component colours, save named themes, and import theme files from one settings page.
-  zh: 主题换肤：在设置页直接编辑 Harness 各组件颜色、保存命名主题、导入主题文件。
+  en: Theme editor for DeepSeek Harness — edit dark and light component colours, save named themes, and import theme files from one settings page.
+  zh: 主题换肤：在设置页直接编辑 Harness 深色/浅色各组件颜色、保存命名主题、导入主题文件。
 ```
 
 对方的硬性要求，本仓库已全部满足：

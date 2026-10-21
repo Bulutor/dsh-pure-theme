@@ -68,18 +68,42 @@ const plugin = {
           return getState();
         },
         get effectivePalette() {
-          return readEffectivePalette();
+          return readEffectivePalette('dark');
         },
-        apply(palette, name) {
+        get effectivePalettes() {
+          return { dark: readEffectivePalette('dark'), light: readEffectivePalette('light') };
+        },
+        apply(palettes, name) {
+          const both =
+            palettes && (palettes.dark || palettes.light)
+              ? { dark: normalizePalette(palettes.dark), light: normalizePalette(palettes.light) }
+              : { dark: normalizePalette(palettes), light: null };
           patchState({
-            palette: normalizePalette(palette),
+            palettes: both,
+            tokens: { dark: null, light: null },
+            activeName: name || T.untitled,
+            activeSource: 'custom',
+            activeThemeId: null,
+          });
+        },
+        applyMode(mode, palette, name) {
+          const palettes = clonePalettes(getState().palettes);
+          palettes[mode] = normalizePalette(palette);
+          patchState({
+            palettes,
             activeName: name || T.untitled,
             activeSource: 'custom',
             activeThemeId: null,
           });
         },
         reset() {
-          patchState({ palette: null, tokens: null, activeName: '', activeSource: null, activeThemeId: null });
+          patchState({
+            palettes: { dark: null, light: null },
+            tokens: { dark: null, light: null },
+            activeName: '',
+            activeSource: null,
+            activeThemeId: null,
+          });
         },
       };
       return () => {
@@ -117,13 +141,19 @@ plugin.__internals = {
   readThemeFile,
   exportThemeFile,
   sanitizePalette,
+  sanitizePalettes,
   sanitizeTokens,
+  sanitizeTokensByMode,
   sanitizeSavedThemes,
   paletteContrastWarning,
+  paletteContrastWarnings,
+  deriveLightPalette,
   isNewerVersion,
   defaultState,
   emptyPalette,
   NATIVE_PALETTE,
+  NATIVE_PALETTES,
+  MODES,
   AGENTS,
   ROLE_TOKENS,
   PALETTE_ROLES,

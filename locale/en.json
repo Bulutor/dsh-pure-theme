@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Theme",
-    "description": "Theme editor for DeepSeek Harness: edit component colours, save named themes, and import theme files."
+    "description": "Theme editor for DeepSeek Harness: edit dark and light component colours, save named themes, and import theme files."
   }
 }

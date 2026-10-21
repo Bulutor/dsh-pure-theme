@@ -42,6 +42,14 @@ const UI_CSS = `
 .mst-chip:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .mst-chip[aria-pressed=true]{border-color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 10%,transparent)}
 .mst-chips{display:flex;flex-wrap:wrap;gap:6px}
+.mst-mode-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.mst-modes{display:inline-flex;padding:2px;border-radius:999px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
+.mst-mode{height:24px;padding:0 10px;border:0;border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.mst-mode:hover{color:var(--dsw-alias-label-primary)}
+.mst-mode[aria-pressed=true]{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 .5px var(--dsw-alias-border-l3)}
+.mst-mode-dot{width:5px;height:5px;border-radius:999px;background:currentColor;opacity:.3}
+.mst-mode[data-custom=true] .mst-mode-dot{opacity:1;background:var(--dsw-alias-brand-primary)}
+.mst-mode-badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:999px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-size:10px;line-height:14px;white-space:nowrap;flex:none}
 .mst-hint{font-size:11px;line-height:17px;color:var(--dsw-alias-label-secondary)}
 .mst-mono{font-family:var(--ds-font-family-code,monospace)}
 .mst-empty{padding:10px 12px;border:.5px dashed var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-md);font-size:11px;line-height:17px;color:var(--dsw-alias-label-secondary);text-align:center}

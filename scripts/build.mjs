@@ -5,7 +5,7 @@
 // `window.__ModuleLoader__.load({ id, factory })`. The sources stay plain
 // ES2020 fragments in one factory scope — no bundler, no dependencies.
 
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, renameSync, unlinkSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,7 +24,12 @@ if (!files.length) {
 const body = files
   .map((name) => {
     const source = readFileSync(join(srcDir, name), 'utf8');
-    return `    // ==== src/${name} ${'='.repeat(Math.max(0, 62 - name.length))}\n${source.trimEnd().replace(/^/gm, '    ')}`;
+    const indented = source
+      .trimEnd()
+      .split('\n')
+      .map((line) => (line ? `    ${line}` : ''))
+      .join('\n');
+    return `    // ==== src/${name} ${'='.repeat(Math.max(0, 62 - name.length))}\n${indented}`;
   })
   .join('\n\n');
 
@@ -53,5 +58,19 @@ try {
 }
 
 const outFile = process.env.DSH_PURE_THEME_OUT || join(root, 'client.js');
-writeFileSync(outFile, output);
+// Write beside the target and rename, so a running Harness that still has the
+// old bundle open does not turn a rebuild into an EPERM on Windows.
+const tempFile = `${outFile}.tmp-${process.pid}`;
+writeFileSync(tempFile, output);
+try {
+  renameSync(tempFile, outFile);
+} catch (error) {
+  try {
+    // Best-effort cleanup; the original bundle is left untouched.
+    unlinkSync(tempFile);
+  } catch {
+    // Ignore cleanup failures; the build error below is the useful one.
+  }
+  throw error;
+}
 console.log(`client.js written to ${outFile} (${output.length} bytes) from ${files.length} sources`);

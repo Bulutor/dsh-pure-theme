@@ -1,17 +1,27 @@
 // ---------------------------------------------------------------------------
 // Persistence: settings in localStorage, named themes in the same document.
-// No images: the Glitter module was removed in 0.2.0.
+// v4 stores one optional palette per colour scheme; v3's single dark palette
+// migrates to `palettes.dark` so existing themes never change their meaning.
 // ---------------------------------------------------------------------------
 
 // The package was renamed; carry a profile's saved themes over once instead of
 // making the rename look like data loss.
 const LEGACY_STORAGE_KEYS = ['dsh-simple-theme:settings:v1'];
+const THEME_FILE_SCHEMA = 'https://github.com/Bulutor/dsh-pure-theme/blob/main/docs/theme-format.md';
+
+function defaultPalettes() {
+  return { dark: null, light: null };
+}
+
+function defaultTokens() {
+  return { dark: null, light: null };
+}
 
 function defaultState() {
   return {
-    v: 3,
-    palette: null,
-    tokens: null,
+    v: 4,
+    palettes: defaultPalettes(),
+    tokens: defaultTokens(),
     activeName: '',
     activeSource: null,
     activeThemeId: null,
@@ -47,16 +57,34 @@ function loadState() {
       : parsed.presetId
         ? 'preset'
         : null;
+
+    let palettes;
+    let tokens;
+    if (parsed.palettes && typeof parsed.palettes === 'object') {
+      palettes = sanitizePalettes(parsed.palettes);
+      tokens = sanitizeTokensByMode(parsed.tokens);
+    } else {
+      palettes = {
+        dark: sanitizePalette(parsed.palette),
+        light: sanitizePalette(parsed.lightPalette),
+      };
+      tokens = {
+        dark: sanitizeTokens(parsed.tokens),
+        light: sanitizeTokens(parsed.lightTokens),
+      };
+      migrated = true;
+    }
+
     const next = {
       ...base,
-      palette: sanitizePalette(parsed.palette),
-      tokens: sanitizeTokens(parsed.tokens),
+      palettes,
+      tokens,
       activeName,
       activeSource,
       activeThemeId: typeof parsed.activeThemeId === 'string' ? parsed.activeThemeId : null,
       savedThemes: sanitizeSavedThemes(parsed.savedThemes),
     };
-    if (migrated) saveState(next);
+    if (migrated || parsed.v !== 4 || !parsed.palettes) saveState(next);
     return next;
   } catch {
     return base;
@@ -75,6 +103,14 @@ function sanitizePalette(input) {
   return normalizePalette(input);
 }
 
+function sanitizePalettes(input) {
+  const palettes = defaultPalettes();
+  if (!input || typeof input !== 'object') return palettes;
+  palettes.dark = sanitizePalette(input.dark);
+  palettes.light = sanitizePalette(input.light);
+  return palettes;
+}
+
 function sanitizeTokens(input) {
   if (!input || typeof input !== 'object') return null;
   const tokens = {};
@@ -88,6 +124,19 @@ function sanitizeTokens(input) {
   return count ? tokens : null;
 }
 
+function sanitizeTokensByMode(input) {
+  const tokens = defaultTokens();
+  if (!input || typeof input !== 'object') return tokens;
+  const keys = Object.keys(input);
+  if (keys.some((key) => key.startsWith('--dsw-'))) {
+    tokens.dark = sanitizeTokens(input);
+    return tokens;
+  }
+  tokens.dark = sanitizeTokens(input.dark);
+  tokens.light = sanitizeTokens(input.light);
+  return tokens;
+}
+
 function newThemeId() {
   if (window.crypto?.randomUUID) return window.crypto.randomUUID();
   return `theme-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -99,8 +148,12 @@ function sanitizeSavedThemes(input) {
   const ids = new Set();
   for (const item of input) {
     if (!item || typeof item !== 'object') continue;
-    const palette = sanitizePalette(item.palette);
-    if (!palette) continue;
+    const palettes =
+      item.palettes && typeof item.palettes === 'object'
+        ? sanitizePalettes(item.palettes)
+        : { dark: sanitizePalette(item.palette), light: sanitizePalette(item.lightPalette) };
+    const tokens = sanitizeTokensByMode(item.tokens);
+    if (!palettes.dark && !palettes.light && !tokens.dark && !tokens.light) continue;
     let id = typeof item.id === 'string' && item.id ? item.id : newThemeId();
     if (ids.has(id)) id = newThemeId();
     ids.add(id);
@@ -111,8 +164,8 @@ function sanitizeSavedThemes(input) {
     out.push({
       id,
       name,
-      palette,
-      tokens: sanitizeTokens(item.tokens),
+      palettes,
+      tokens,
       source: ['vscode', 'file'].includes(item.source) ? item.source : 'custom',
       fileName: typeof item.fileName === 'string' ? item.fileName.slice(0, 120) : '',
       createdAt: Number.isFinite(item.createdAt) ? item.createdAt : Date.now(),
@@ -154,6 +207,20 @@ function paletteFromVscode(colors) {
   return sanitizePalette(palette);
 }
 
+function themeLooksLight(parsed) {
+  if (parsed.type === 'light') return true;
+  if (parsed.type === 'dark') return false;
+  const colors = parsed.colors && typeof parsed.colors === 'object' ? parsed.colors : {};
+  const background =
+    normalizeHex(colors['editor.background'], null) ||
+    normalizeHex(colors['sideBar.background'], null);
+  return background ? relativeLuminance(background) > 0.5 : false;
+}
+
+function themeName(parsed, fallback) {
+  return typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : fallback;
+}
+
 /**
  * Validate an uploaded theme file.
  * @param {unknown} parsed JSON.parse result
@@ -164,43 +231,98 @@ function readThemeFile(parsed) {
     return { ok: false, reason: 'not-an-object' };
   }
 
-  // VS Code / VS Code-fork themes: { colors: { ... } }
-  if (parsed.colors && typeof parsed.colors === 'object') {
-    const palette = paletteFromVscode(parsed.colors);
-    if (!palette) return { ok: false, reason: 'vscode-no-usable-colors' };
+  // v2: explicit dark/light palettes.
+  if (parsed.palettes && typeof parsed.palettes === 'object') {
+    const palettes = sanitizePalettes(parsed.palettes);
+    const tokens = sanitizeTokensByMode(parsed.tokens || parsed.tokensByMode);
+    if (!palettes.dark && !palettes.light && !tokens.dark && !tokens.light) {
+      return { ok: false, reason: 'no-palette' };
+    }
     return {
       ok: true,
       theme: {
-        name: typeof parsed.name === 'string' ? parsed.name : 'VS Code theme',
-        source: 'vscode',
-        palette,
-        tokens: null,
+        name: themeName(parsed, 'Theme'),
+        source: 'theme-file',
+        palettes,
+        tokens,
+        version: 2,
       },
     };
   }
 
+  // VS Code / VS Code-fork themes: { colors: { ... } }
+  if (parsed.colors && typeof parsed.colors === 'object') {
+    const palette = paletteFromVscode(parsed.colors);
+    if (!palette) return { ok: false, reason: 'vscode-no-usable-colors' };
+    const mode = themeLooksLight(parsed) ? 'light' : 'dark';
+    return {
+      ok: true,
+      theme: {
+        name: themeName(parsed, 'VS Code theme'),
+        source: 'vscode',
+        palettes: {
+          dark: mode === 'dark' ? palette : null,
+          light: mode === 'light' ? palette : null,
+        },
+        tokens: defaultTokens(),
+        detectedMode: mode,
+        version: 1,
+      },
+    };
+  }
+
+  // v1: a single palette, dark unless basedOn says otherwise.
+  const mode = parsed.basedOn === 'light' ? 'light' : 'dark';
   const palette = sanitizePalette(parsed.palette || parsed.colors || parsed);
-  if (!palette) return { ok: false, reason: 'no-palette' };
+  const tokens = sanitizeTokens(parsed.tokens);
+  if (!palette && !tokens) return { ok: false, reason: 'no-palette' };
 
   return {
     ok: true,
     theme: {
-      name: typeof parsed.name === 'string' ? parsed.name : 'Custom theme',
+      name: themeName(parsed, 'Theme'),
       source: 'theme-file',
-      palette,
-      tokens: sanitizeTokens(parsed.tokens),
+      palettes: {
+        dark: mode === 'dark' ? palette : null,
+        light: mode === 'light' ? palette : null,
+      },
+      tokens: {
+        dark: mode === 'dark' ? tokens : null,
+        light: mode === 'light' ? tokens : null,
+      },
+      detectedMode: mode,
+      version: 1,
     },
   };
 }
 
 function exportThemeFile(state) {
-  const palette = state.palette || emptyPalette();
-  return {
-    $schema: 'https://github.com/Bulutor/dsh-pure-theme/blob/main/docs/theme-format.md',
+  const palettes =
+    state.palettes && typeof state.palettes === 'object'
+      ? sanitizePalettes(state.palettes)
+      : { dark: sanitizePalette(state.palette), light: sanitizePalette(state.lightPalette) };
+  const tokens =
+    state.tokens && typeof state.tokens === 'object'
+      ? sanitizeTokensByMode(state.tokens)
+      : { dark: sanitizeTokens(state.tokens), light: null };
+
+  const file = {
+    $schema: THEME_FILE_SCHEMA,
+    version: 2,
     name: state.activeName || 'My DSH theme',
     author: '',
-    basedOn: 'dark',
-    palette,
-    tokens: state.tokens || undefined,
+    palettes: {},
   };
+  for (const mode of ['dark', 'light']) {
+    if (palettes[mode]) file.palettes[mode] = palettes[mode];
+  }
+  if (tokens.dark || tokens.light) {
+    file.tokens = {};
+    for (const mode of ['dark', 'light']) {
+      if (tokens[mode]) file.tokens[mode] = tokens[mode];
+    }
+  }
+  // 0.3 clients understand the legacy fields; they only ever see the dark half.
+  if (palettes.dark) file.palette = palettes.dark;
+  return file;
 }

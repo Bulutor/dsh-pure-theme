@@ -1,7 +1,7 @@
 # dsh-pure-theme
 
 > DeepSeek Harness 的主题：**在设置里直接改各组件颜色、保存命名主题、导入主题文件。**
-> Theming for DeepSeek Harness: edit component colours, save named themes, import theme files.
+> Theming for DeepSeek Harness: edit dark and light component colours, save named themes, import theme files.
 
 为从其他编程 Agent 转到 DeepSeek Harness 的人而做。换肤不应该逼着人去翻 CSS 变量，也不应该把界面塞满。
 
@@ -17,7 +17,7 @@
 右侧内容区只有两个模块，上下排列：
 
 1. **主题库**：从其他 Agent 的预设开始、应用「我的主题」、导入主题文件并命名保存；
-2. **配色**：在色块上直接取色，实时修改 Harness 各组件颜色，并带一个 DSH 小预览。
+2. **配色**：在色块上直接取色，实时修改 Harness 深色/浅色两套外观，并带一个 DSH 小预览。
 
 栏目名与插件列表标题跟随 **DeepSeek Harness 当前语言**。内置完整中文/英文文案；日语、韩语、法语、德语、西班牙语、葡萄牙语、俄语、阿拉伯语、印地语等 30+ 语言的栏目名/标题已预置，其余文案按 DSH 的 locale fallback 走英文，等 DSH 增加对应语言包后会自动使用。
 
@@ -25,7 +25,7 @@
 
 ### 1. 主题库
 
-- **Agent 配色**：Agent 下拉 + 该 Agent 的主题 chips，点一下整套应用；来源与可信度收在 chips 的悬停提示里。
+- **Agent 配色**：Agent 下拉 + 该 Agent 的主题 chips，点一下整套应用；每套主题带深色和浅色两张色板，来源与可信度收在 chips 的悬停提示里。
 - **我的主题**：保存过的命名主题，支持应用、导出、删除；最多保留 50 个。
 - **导入主题文件**：拖入或选择 `.json` / `.dshtheme` / VS Code 配色主题；识别后先进入草稿区，**先命名，再「保存到我的主题」**（也可以只应用不保存）。颜色只在本机读取。
 
@@ -35,10 +35,12 @@
   - 表面：侧边栏、画布、输入区、卡片、浮层；
   - 文字与描边：描边、主文字、次文字；
   - 强调：强调色、强调色文字。
-- 点色块打开系统取色器，旁边的 hex 输入框可直接粘贴色值；修改**立即应用**到 Harness。
-- 内置 DSH 小预览：侧边栏、卡片、按钮、输入框会按当前配色实时变化。
-- 显示文字/画布对比度警告；支持恢复 Harness 默认、导出当前主题、下载示例文件。
-- 保存时给主题命名，进入「我的主题」。
+- 顶部切换**深色 / 浅色**，分别编辑两套色板；修改会立即写入对应模式的样式，切到该模式即可看到。
+- 某模式没有自定义色板时显示 Harness 原生值；修改任一颜色即创建该模式的色板。
+- 浅色为空、深色已有色板时，可以「生成浅色草稿」，确认后再保存。
+- 内置 DSH 小预览：侧边栏、卡片、按钮、输入框会按当前色板实时变化。
+- 显示文字/画布对比度警告；支持恢复当前模式、恢复 Harness 默认、导出当前主题、下载示例文件。
+- 保存时给主题命名，进入「我的主题」；深色和浅色两张色板一起保存。
 
 > 0.2.0 起移除了「炫彩」图片背景模块：它让三栏视觉变重，与主题的目标不符。旧版本保存的图片数据不会迁移，也不再读取。
 
@@ -58,9 +60,16 @@ dsh plugin --profile desktop add /path/to/dsh-pure-theme
 
 ## 它怎么工作
 
-DSH 的所有深色表面都从 `--dsw-static-neutral-bluish-*` 灰阶推导，再由 `--dsw-alias-*` 承接。插件只做一件事：
+DSH 的深色表面从 `--dsw-static-neutral-bluish-*` 灰阶推导，浅色则主要走 alias/specific 层。插件做两件事：
 
-在 `body[data-ds-dark-theme]` 上，把用户选的 10 个语义色映射到对应的 DSH token；文字、描边、强调色在 alias 层覆盖。
+- 在 `body[data-ds-dark-theme]` 上写深色色板；
+- 在 `body:not([data-ds-dark-theme])` 上写浅色色板。
+
+一个主题可以带 `palettes.dark` 和 `palettes.light`；应用时两张色板一起写入，但**不修改 DSH 的浅色/深色/跟随系统选择**。DSH 切到哪个模式，主题就显示对应那张色板。旧主题只有深色色板，浅色继续使用 DSH 原生配色，不会自动生成浅色。
+
+浅色/深色/跟随系统仍然由 DSH 原生「通用 → 外观」控制；插件不复制这个开关，只负责两种模式下的配色。这样外观只有一个入口，不会出现两套外观设置打架。
+
+浅色不改写 `--dsw-static-neutral-bluish-00/50/75/100/150`：这些 token 还被文字前景、代码块、登录框等共用，只在 alias/specific 层覆盖更安全。描边、hover、三级文字等派生值用 `color-mix` 从色板本身计算，保持层级。
 
 不注入 iframe、不替换根节点、不读取其他插件的页面内容。移除插件后所有样式随 `<style>` 标签一起消失。
 
@@ -70,25 +79,40 @@ DSH 的所有深色表面都从 `--dsw-static-neutral-bluish-*` 灰阶推导，�
 
 ```json
 {
-  "name": "My theme",
-  "basedOn": "dark",
-  "palette": {
-    "sidebar": "#1B1B1B",
-    "canvas": "#202020",
-    "input": "#262626",
-    "surface": "#242424",
-    "surfaceAlt": "#2E2E2E",
-    "border": "#3A3A3A",
-    "textPrimary": "#EDEDED",
-    "textSecondary": "#A6A6A6",
-    "accent": "#4D6BFE",
-    "accentText": "#FFFFFF"
+  "version": 2,
+  "name": "Jade desk",
+  "palettes": {
+    "dark": {
+      "sidebar": "#1D2724",
+      "canvas": "#222F2A",
+      "input": "#222F2A",
+      "surface": "#222F2A",
+      "surfaceAlt": "#26332E",
+      "border": "#2E3D36",
+      "textPrimary": "#E6EFE9",
+      "textSecondary": "#9FB3A8",
+      "accent": "#8FD3B4",
+      "accentText": "#12201A"
+    },
+    "light": {
+      "sidebar": "#EEF4F1",
+      "canvas": "#F7FAF8",
+      "input": "#FFFFFF",
+      "surface": "#FFFFFF",
+      "surfaceAlt": "#E4EDE8",
+      "border": "#C6D6CE",
+      "textPrimary": "#15201B",
+      "textSecondary": "#5C6F65",
+      "accent": "#2F7D5E",
+      "accentText": "#FFFFFF"
+    }
   }
 }
 ```
 
-- 也接受 VS Code 主题（`{ "colors": { "sideBar.background": "...", "editor.background": "..." } }`），插件按颜色键自动迁移。
-- 可选 `tokens` 字段可直接覆盖任意 `--dsw-*` token。
+- 也接受 VS Code 主题（`{ "colors": { "sideBar.background": "...", "editor.background": "..." } }`），插件按 `type` / 背景亮度判断放进深色还是浅色，并按颜色键自动迁移。
+- 旧版单 `palette` 文件仍可导入，视为“仅深色”，浅色保持原生。
+- 可选 `tokens` 字段可按模式覆盖任意 `--dsw-*` token。
 - 格式详见 [docs/theme-format.md](docs/theme-format.md)，迁移方法见 [docs/migration.md](docs/migration.md)。
 
 ## 语言
@@ -112,6 +136,12 @@ node scripts/render-check.mjs  # 用真实 React 渲染设置页（需要 .tmp-r
 - 所有设置、命名主题、导入结果存 `localStorage`，不出本机；
 - 不读取图片，不上传文件，不统计；
 - 唯一的网络请求是查询 npm 上的最新版本号，失败即静默。
+
+## 已知限制
+
+- 浅色 token 覆盖集中在 alias/specific 层；代码块、菜单、滚动条等仍可能保留部分原生浅色值。
+- 旧主题只有深色色板，浅色不会自动生成；需要在配色页补一张浅色色板。
+- 「我的主题」存本机 `localStorage`，不跨设备同步。
 
 ## 许可证
 

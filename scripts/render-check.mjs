@@ -88,7 +88,7 @@ globalThis.window = {
 
 globalThis.document = {
   head: { appendChild() {} },
-  body: { appendChild() {}, removeChild() {} },
+  body: { appendChild() {}, removeChild() {}, hasAttribute: () => true },
   documentElement: {},
   getElementById: () => null,
   createElement: () => ({
@@ -146,6 +146,10 @@ for (const needle of [
   '侧边栏',
   '强调色',
   '预览',
+  '深色',
+  '浅色',
+  '仅深色',
+  'DSH 当前：深色',
 ]) {
   assert.ok(html.includes(needle), `page contains "${needle}"`);
 }
@@ -168,6 +172,30 @@ assert.ok(!html.includes('undefined'), 'no literal undefined');
 // the page component; check it through the same translation binding.
 assert.equal(plugin.__internals.MESSAGES.zh.nav, '主题');
 assert.equal(plugin.__internals.MESSAGES.en.nav, 'Theme');
+
+// A dark-only theme viewed in light mode offers a light-draft action.
+document.body.hasAttribute = () => false;
+const darkOnlyLightHtml = renderToStaticMarkup(React.createElement(components.PureThemePage));
+assert.ok(darkOnlyLightHtml.includes('生成浅色草稿'), 'light tab offers a light-draft action');
+assert.ok(darkOnlyLightHtml.includes('此模式使用 Harness 原生配色'), 'light tab explains the native fallback');
+document.body.hasAttribute = () => true;
+
+// A dual theme should render both-mode coverage and follow the active DSH mode.
+window.__dshPureTheme.apply(
+  {
+    dark: plugin.__internals.emptyPalette('dark'),
+    light: plugin.__internals.emptyPalette('light'),
+  },
+  'Dual palette',
+);
+const dualHtml = renderToStaticMarkup(React.createElement(components.PureThemePage));
+assert.ok(dualHtml.includes('Dual palette'), 'dual theme name is shown');
+assert.ok(dualHtml.includes('深色 + 浅色'), 'dual theme has a both-mode badge');
+
+document.body.hasAttribute = () => false;
+const lightHtml = renderToStaticMarkup(React.createElement(components.PureThemePage));
+assert.ok(lightHtml.includes('DSH 当前：浅色'), 'the page follows the light Harness mode');
+assert.ok(lightHtml.includes('预览 · 浅色'), 'the preview follows the light edit tab');
 
 console.log(`rendered PureThemePage: ${html.length} bytes`);
 console.log('ok — settings page renders with real React');

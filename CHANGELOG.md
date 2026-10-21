@@ -2,6 +2,27 @@
 
 所有值得注意的变更都记在这里。格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.4.0] - 2026-10-21
+
+### 新增
+
+- **双 palette 主题**：一套主题可以同时带 `palettes.dark` 和 `palettes.light`；应用一次，DSH 切到哪个模式就显示对应色板，不修改 DSH 的浅色/深色/跟随系统选择。
+- **浅色主题支持**：配色页新增「深色 / 浅色」切换；浅色只覆盖 alias/specific token，描边、hover 和三级文字用 `color-mix` 派生。
+- **9 套浅色预设**：现有 9 个 Agent 主题全部补齐浅色色板；主题 chips 标「深色 + 浅色」或「仅深色」。
+- **浅色草稿**：深色已有、浅色为空时，可以「生成浅色草稿」再手调。
+- **主题文件 v2**：`palettes.dark/light`、按模式的 `tokens`；VS Code 主题按 `type` / 背景亮度识别深色或浅色。
+- 对比度检查覆盖次文字和强调色文字。
+
+### 变更
+
+- **存储结构升级到 v4**：v3 的 `palette` / `tokens` 自动迁移到 `palettes.dark` / `tokens.dark`；旧主题保持“仅深色”，浅色继续原生，不会自动生成浅色。
+- 导出深色主题时保留旧 `palette` 字段，方便 0.3 用户导入深色部分；浅色主题不写旧字段，避免被旧版误套进深色。
+- 配色页的“当前模式”读取 DSH 的 `data-ds-dark-theme`，只用于提示和预览，不控制 DSH 外观。
+
+### 修复
+
+- 浅色下预填原生色板不再混读深色静态 ramp；`readEffectivePalette` 只保留为调试接口。
+
 ## [0.3.0] - 2026-10-21
 
 ### 变更（破坏性）

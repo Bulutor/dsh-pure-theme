@@ -1,18 +1,32 @@
 {
   "$schema": "https://github.com/Bulutor/dsh-pure-theme/blob/main/docs/theme-format.md",
+  "version": 2,
   "name": "Jade desk",
   "author": "dsh-pure-theme",
-  "basedOn": "dark",
-  "palette": {
-    "sidebar": "#1D2724",
-    "canvas": "#222F2A",
-    "input": "#222F2A",
-    "surface": "#222F2A",
-    "surfaceAlt": "#26332E",
-    "border": "#2E3D36",
-    "textPrimary": "#E6EFE9",
-    "textSecondary": "#9FB3A8",
-    "accent": "#8FD3B4",
-    "accentText": "#12201A"
+  "palettes": {
+    "dark": {
+      "sidebar": "#1D2724",
+      "canvas": "#222F2A",
+      "input": "#222F2A",
+      "surface": "#222F2A",
+      "surfaceAlt": "#26332E",
+      "border": "#2E3D36",
+      "textPrimary": "#E6EFE9",
+      "textSecondary": "#9FB3A8",
+      "accent": "#8FD3B4",
+      "accentText": "#12201A"
+    },
+    "light": {
+      "sidebar": "#EEF4F1",
+      "canvas": "#F7FAF8",
+      "input": "#FFFFFF",
+      "surface": "#FFFFFF",
+      "surfaceAlt": "#E4EDE8",
+      "border": "#C6D6CE",
+      "textPrimary": "#15201B",
+      "textSecondary": "#5C6F65",
+      "accent": "#2F7D5E",
+      "accentText": "#FFFFFF"
+    }
   }
 }
