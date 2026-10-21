@@ -1,7 +1,7 @@
 # dsh-pure-theme
 
-> DeepSeek Harness 的极简主题：**在设置里直接改各组件颜色、保存命名主题、导入主题文件。**
-> Minimalist theming for DeepSeek Harness: edit component colours, save named themes, import theme files.
+> DeepSeek Harness 的主题：**在设置里直接改各组件颜色、保存命名主题、导入主题文件。**
+> Theming for DeepSeek Harness: edit component colours, save named themes, import theme files.
 
 为从其他编程 Agent 转到 DeepSeek Harness 的人而做。换肤不应该逼着人去翻 CSS 变量，也不应该把界面塞满。
 
@@ -12,20 +12,20 @@
 
 安装后，设置面板左侧会出现一个与「通用设置」同级的一级栏目：
 
-> **设置 → 极简主题**（English: **Settings → Minimalist Theme**）
+> **设置 → 主题**（English: **Settings → Theme**）
 
 右侧内容区只有两个模块，上下排列：
 
 1. **主题库**：从其他 Agent 的预设开始、应用「我的主题」、导入主题文件并命名保存；
 2. **配色**：在色块上直接取色，实时修改 Harness 各组件颜色，并带一个 DSH 小预览。
 
-栏目名与页面标题跟随 **DeepSeek Harness 当前语言**。内置完整中文/英文文案；日语、韩语、法语、德语、西班牙语、葡萄牙语、俄语、阿拉伯语、印地语等 30+ 语言的栏目名/标题已预置，其余文案按 DSH 的 locale fallback 走英文，等 DSH 增加对应语言包后会自动使用。
+栏目名与插件列表标题跟随 **DeepSeek Harness 当前语言**。内置完整中文/英文文案；日语、韩语、法语、德语、西班牙语、葡萄牙语、俄语、阿拉伯语、印地语等 30+ 语言的栏目名/标题已预置，其余文案按 DSH 的 locale fallback 走英文，等 DSH 增加对应语言包后会自动使用。
 
 ## 两个模块
 
 ### 1. 主题库
 
-- **从其他 Agent 开始**：Agent 下拉 + 该 Agent 的主题 chips，点一下整套应用；每套标注灵感来源与可信度。
+- **Agent 配色**：Agent 下拉 + 该 Agent 的主题 chips，点一下整套应用；来源与可信度收在 chips 的悬停提示里。
 - **我的主题**：保存过的命名主题，支持应用、导出、删除；最多保留 50 个。
 - **导入主题文件**：拖入或选择 `.json` / `.dshtheme` / VS Code 配色主题；识别后先进入草稿区，**先命名，再「保存到我的主题」**（也可以只应用不保存）。颜色只在本机读取。
 
@@ -40,7 +40,7 @@
 - 显示文字/画布对比度警告；支持恢复 Harness 默认、导出当前主题、下载示例文件。
 - 保存时给主题命名，进入「我的主题」。
 
-> 0.2.0 起移除了「炫彩」图片背景模块：它让三栏视觉变重，与极简主题的目标不符。旧版本保存的图片数据不会迁移，也不再读取。
+> 0.2.0 起移除了「炫彩」图片背景模块：它让三栏视觉变重，与主题的目标不符。旧版本保存的图片数据不会迁移，也不再读取。
 
 ## 安装
 
@@ -62,7 +62,9 @@ DSH 的所有深色表面都从 `--dsw-static-neutral-bluish-*` 灰阶推导，�
 
 在 `body[data-ds-dark-theme]` 上，把用户选的 10 个语义色映射到对应的 DSH token；文字、描边、强调色在 alias 层覆盖。
 
-不注入 iframe、不替换根节点、不读取其他插件 DOM。移除插件后所有样式随 `<style>` 标签一起消失。
+不注入 iframe、不替换根节点、不读取其他插件的页面内容。移除插件后所有样式随 `<style>` 标签一起消失。
+
+设置导航的齿轮是 Host 的兜底图标：DSH 0.2.x 按栏目 id 硬编码图标，`settings.section` 还没有 icon 字段。插件给栏目标记后，用 CSS 掩码画一个调色盘；Host 以后支持 icon 时可以直接删掉这段兜底。插件列表里的图标则来自 `package.json` 的 `icon` 字段。
 
 ## 主题文件
 
@@ -92,7 +94,7 @@ DSH 的所有深色表面都从 `--dsw-static-neutral-bluish-*` 灰阶推导，�
 ## 语言
 
 - `en` / `zh`：完整页面文案。
-- `zh-TW`、`ja`、`ko`、`fr`、`de`、`es`、`pt`、`pt-BR`、`ru`、`it`、`nl`、`pl`、`tr`、`ar`、`hi`、`id`、`vi`、`th`、`sv`、`da`、`fi`、`nb`、`cs`、`el`、`he`、`ro`、`hu`、`bg`、`sk`、`hr`、`sr`、`uk`、`ms`、`fil`：栏目名与页面标题；其余文案按 DSH fallback 走英文。
+- `zh-TW`、`ja`、`ko`、`fr`、`de`、`es`、`pt`、`pt-BR`、`ru`、`it`、`nl`、`pl`、`tr`、`ar`、`hi`、`id`、`vi`、`th`、`sv`、`da`、`fi`、`nb`、`cs`、`el`、`he`、`ro`、`hu`、`bg`、`sk`、`hr`、`sr`、`uk`、`ms`、`fil`：栏目名与插件列表标题；其余文案按 DSH fallback 走英文。
 - 语言来自 DSH 的 `locale` 服务，不使用浏览器语言猜测。
 
 ## 开发
@@ -113,4 +115,4 @@ node scripts/render-check.mjs  # 用真实 React 渲染设置页（需要 .tmp-r
 
 ## 许可证
 
-MIT。图标为原创 SVG（一件上衣），随本项目以 MIT 分发。
+MIT。图标为原创调色盘 SVG，随本项目以 MIT 分发。

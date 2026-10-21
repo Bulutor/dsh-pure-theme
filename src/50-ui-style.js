@@ -4,12 +4,19 @@
 // its own look.
 // ---------------------------------------------------------------------------
 
+// DSH 0.2.x picks settings-nav glyphs from a hard-coded id table and falls back
+// to a gear for section ids it does not know. The slot contract has no icon
+// option yet, so the plugin marks its own row and paints a palette with a mask.
+// The SVG is monochrome: the pseudo-element inherits `currentColor`.
+const NAV_ATTR = 'data-dsh-pure-theme-nav';
+const NAV_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="black" stroke-width="1.6" stroke-linejoin="round" d="M12 2.8C6.8 2.8 2.8 6.4 2.8 11c0 4.6 4 8.2 9.2 8.2 1.2 0 2.2-1 2.2-2.2 0-.6-.3-1.2-.7-1.6-.4-.4-.4-1 0-1.4.4-.4 1-.4 1.4 0 .4.4 1 .6 1.6.6h.9c2.2 0 3.8-1.7 3.8-3.8 0-4.5-4-8-9.2-8Z"/><circle cx="7.2" cy="11.2" r="1.4" fill="black"/><circle cx="9.8" cy="7.6" r="1.4" fill="black"/><circle cx="14.2" cy="7.6" r="1.4" fill="black"/><circle cx="16.8" cy="11.2" r="1.4" fill="black"/></svg>`;
+const NAV_ICON_MASK = `url("data:image/svg+xml,${encodeURIComponent(NAV_ICON_SVG)}")`;
+
 const UI_CSS = `
-.mst-page{display:flex;flex-direction:column;gap:14px;padding:24px 0 8px}
-.mst-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.mst-title{font-size:16px;line-height:24px;font-weight:500;color:var(--dsw-alias-label-primary)}
-.mst-sub{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);margin-top:2px;max-width:52em}
-.mst-badge{font-size:11px;line-height:16px;padding:1px 8px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);border:.5px solid var(--dsw-alias-border-l2);white-space:nowrap;max-width:42%;overflow:hidden;text-overflow:ellipsis}
+.mst-page{display:flex;flex-direction:column;gap:14px;padding:16px 0 8px}
+.mst-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;line-height:16px;padding:2px 8px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:.5px solid var(--dsw-alias-border-l2);white-space:nowrap;max-width:min(320px,48%);min-width:0;flex:0 1 auto}
+.mst-badge-label{opacity:.62}
+.mst-badge-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
 .mst-card{border:.5px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-lg);background:var(--dsw-alias-bg-layer-1,var(--dsw-alias-bg-layer-2));padding:14px 16px}
 .mst-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
 .mst-card-title{font-size:13px;line-height:20px;font-weight:500;color:var(--dsw-alias-label-primary)}
@@ -30,7 +37,7 @@ const UI_CSS = `
 .mst-input:focus,.mst-select:focus{outline:1px solid var(--dsw-alias-brand-primary);outline-offset:-1px}
 .mst-grow{flex:1;min-width:0}
 .mst-dots{display:flex;gap:3px;flex:none}
-.mst-dot{width:12px;height:12px;border-radius:3px;border:.5px solid rgba(0,0,0,.14);flex:none}
+.mst-dot{width:12px;height:12px;border-radius:3px;border:.5px solid rgba(127,127,127,.45);box-shadow:0 0 0 .5px rgba(0,0,0,.22);flex:none}
 .mst-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--dsw-radius-sm);border:.5px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;cursor:pointer;text-align:left}
 .mst-chip:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .mst-chip[aria-pressed=true]{border-color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 10%,transparent)}
@@ -77,5 +84,7 @@ const UI_CSS = `
 .mst-warn{color:var(--dsw-alias-state-warn-primary,#d97706)}
 .mst-error{color:var(--dsw-alias-state-error-primary,#ef4444)}
 .mst-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:2px 2px 0}
+[${NAV_ATTR}]>svg{display:none}
+[${NAV_ATTR}]::before{content:"";width:16px;height:16px;flex:none;background:currentColor;-webkit-mask:${NAV_ICON_MASK} center/16px 16px no-repeat;mask:${NAV_ICON_MASK} center/16px 16px no-repeat}
 @media (max-width:720px){.mst-color-grid{grid-template-columns:1fr}.mst-preview{height:144px}}
 `;

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "미니멀 테마",
-    "description": "Minimalist theming for DeepSeek Harness: edit component colours, save named themes, and import theme files."
+    "title": "테마",
+    "description": "Theme editor for DeepSeek Harness: edit component colours, save named themes, and import theme files."
   }
 }

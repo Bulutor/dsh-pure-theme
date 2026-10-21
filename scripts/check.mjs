@@ -2,7 +2,7 @@
 // Offline checks for the built client bundle: plugin contract, localization,
 // stylesheet generation, saved-theme persistence and theme-file parsing.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
@@ -40,6 +40,16 @@ function createElement(tagName) {
 }
 
 const storage = new Map();
+storage.set(
+  'dsh-simple-theme:settings:v1',
+  JSON.stringify({
+    v: 3,
+    palette: { sidebar: '#111111', canvas: '#202020', textPrimary: '#FFFFFF' },
+    activeName: 'Legacy theme',
+    activeSource: 'custom',
+    savedThemes: [],
+  }),
+);
 
 globalThis.BroadcastChannel = undefined;
 globalThis.window = {
@@ -122,29 +132,46 @@ const ctx = {
 };
 
 plugin.apply(ctx);
+assert.equal(window.__dshPureTheme.state.activeName, 'Legacy theme', 'legacy settings are read');
+assert.ok(storage.has('dsh-pure-theme:settings:v1'), 'legacy settings are copied to the new key');
 assert.deepEqual(injections, ['settings.section'], 'registers into the top-level settings section slot');
 assert.equal(registrations.length, 1, 'one settings section');
 assert.equal(registrations[0].options.name, 'settings.section');
-assert.equal(registrations[0].options.id, 'minimalist-theme');
+assert.equal(registrations[0].options.id, 'theme');
 assert.equal(registrations[0].options.order, 1, 'sits right after General');
-assert.equal(registrations[0].options.label(), 'Minimalist Theme', 'nav label follows the active locale');
+assert.equal(registrations[0].options.label(), 'Theme', 'nav label follows the active locale');
 activeLocale = 'zh';
-assert.equal(registrations[0].options.label(), '极简主题', 'nav label updates with the Harness language');
+assert.equal(registrations[0].options.label(), '主题', 'nav label updates with the Harness language');
 activeLocale = 'en';
 assert.equal(typeof registrations[0].component, 'function', 'section component registered');
 assert.equal(dictionaries[0].namespace, 'dsh-pure-theme');
 assert.ok(registeredLocales.includes('zh') && registeredLocales.includes('en'));
-assert.ok(effects.length >= 4, 'stylesheets and sync effects installed');
+assert.ok(effects.length >= 5, 'stylesheets, nav icon and sync effects installed');
 assert.ok(effects.every((effect) => typeof effect.dispose === 'function'), 'every effect is disposable');
 
+// --- settings nav decoration ----------------------------------------------
+const navButtons = [
+  { textContent: '主题', attrs: {}, getAttribute(key) { return this.attrs[key] ?? null; }, setAttribute(key, value) { this.attrs[key] = value; } },
+  { textContent: '通用设置', attrs: {}, getAttribute(key) { return this.attrs[key] ?? null; }, setAttribute(key, value) { this.attrs[key] = value; } },
+];
+globalThis.document.querySelectorAll = (selector) =>
+  selector === '[data-shortcut-modal="settings"] nav button' ? navButtons : [];
+activeLocale = 'zh';
+api.markSettingsNav();
+assert.equal(navButtons[0].attrs[api.NAV_ATTR], 'true', 'our rail row gets the palette marker');
+assert.equal(navButtons[1].attrs[api.NAV_ATTR], undefined, 'other rail rows keep their host glyph');
+activeLocale = 'en';
+
 // --- localization ----------------------------------------------------------
-assert.equal(api.MESSAGES.zh.nav, '极简主题');
-assert.equal(api.MESSAGES.en.nav, 'Minimalist Theme');
-assert.equal(api.MESSAGES['zh-TW'].nav, '極簡主題');
-assert.equal(api.MESSAGES.ja.nav, 'ミニマルテーマ');
-assert.equal(api.MESSAGES.fr.nav, 'Thème minimaliste');
-assert.equal(api.MESSAGES.de.nav, 'Minimalistisches Thema');
-assert.equal(api.MESSAGES.ar.nav, 'سمة بسيطة');
+assert.equal(api.MESSAGES.zh.nav, '主题');
+assert.equal(api.MESSAGES.en.nav, 'Theme');
+assert.equal(api.MESSAGES['zh-TW'].nav, '主題');
+assert.equal(api.MESSAGES.ja.nav, 'テーマ');
+assert.equal(api.MESSAGES.fr.nav, 'Thème');
+assert.equal(api.MESSAGES.de.nav, 'Design');
+assert.equal(api.MESSAGES.ar.nav, 'السمة');
+assert.equal(api.MESSAGES.zh.title, '主题');
+assert.equal(api.MESSAGES.en.title, 'Theme');
 
 const enKeys = Object.keys(api.MESSAGES.en).sort();
 const zhKeys = Object.keys(api.MESSAGES.zh).sort();
@@ -152,6 +179,15 @@ assert.deepEqual(zhKeys, enKeys, 'zh and en dictionaries carry the same keys');
 for (const locale of Object.keys(api.MESSAGES)) {
   assert.ok(api.MESSAGES[locale].nav, `${locale} has a nav label`);
   assert.ok(api.MESSAGES[locale].title, `${locale} has a title`);
+}
+
+const localeFiles = readdirSync(join(root, 'locale')).filter((name) => name.endsWith('.json'));
+assert.equal(localeFiles.length, Object.keys(api.MESSAGES).length, 'every message locale has package metadata');
+for (const file of localeFiles) {
+  const locale = file.slice(0, -'.json'.length);
+  const meta = JSON.parse(readFileSync(join(root, 'locale', file), 'utf8')).meta;
+  assert.equal(meta.title, api.MESSAGES[locale].nav, `${locale} plugin-list title matches the settings label`);
+  assert.ok(meta.description, `${locale} has a plugin-list description`);
 }
 
 // --- stylesheet generation -------------------------------------------------
@@ -256,8 +292,13 @@ const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 assert.equal(api.VERSION, pkg.version, 'VERSION matches package.json');
 assert.ok(pkg.dsh?.bundle?.patch, 'package declares dsh.bundle.patch (market requirement)');
 assert.ok(pkg.dsh?.client, 'package declares dsh.client');
+assert.equal(pkg.icon, './icon.svg', 'package exposes the plugin-list icon');
 assert.ok(readFileSync(join(root, 'cordis.patch.yml'), 'utf8').includes('dsh-pure-theme'), 'patch inserts the plugin row');
-assert.ok(readFileSync(join(root, 'icon.svg'), 'utf8').startsWith('<svg'), 'icon is an SVG');
+const icon = readFileSync(join(root, 'icon.svg'), 'utf8');
+assert.ok(icon.startsWith('<svg'), 'icon is an SVG');
+assert.ok(icon.includes('aria-label="dsh-pure-theme"'), 'icon is labelled');
+assert.ok(icon.includes('<circle'), 'icon uses the palette glyph');
+assert.ok(api.UI_CSS.includes(`[${api.NAV_ATTR}]`), 'page stylesheet carries the nav icon rule');
 
 // --- presets ---------------------------------------------------------------
 assert.equal(api.AGENTS.length, 9, 'nine agents ship as presets (Harness + 8 others)');

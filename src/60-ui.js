@@ -11,7 +11,7 @@ const ROLE_BY_KEY = Object.fromEntries(PALETTE_ROLES.map((role) => [role.key, ro
 
 const EXAMPLE_THEME = {
   $schema: 'https://github.com/Bulutor/dsh-pure-theme/blob/main/docs/theme-format.md',
-  name: 'Minimal dark',
+  name: 'Pure dark',
   author: '',
   basedOn: 'dark',
   palette: NATIVE_PALETTE,
@@ -35,6 +35,15 @@ function Status({ status }) {
   if (!status) return null;
   const tone = status.kind === 'error' ? 'mst-error' : status.kind === 'warn' ? 'mst-warn' : 'mst-ok';
   return h('div', { className: `mst-status ${tone}` }, status.message);
+}
+
+function CurrentThemeBadge({ name }) {
+  return h(
+    'span',
+    { className: 'mst-badge', title: name },
+    h('span', { className: 'mst-badge-label' }, `${T.currentTheme}:`),
+    h('span', { className: 'mst-badge-value' }, name),
+  );
 }
 
 function ColorSwatch({ role, value, onChange }) {
@@ -125,21 +134,25 @@ function PresetPicker({ state, onApply }) {
   }, [state.activeName]);
   const agent = AGENTS.find((item) => item.id === agentId) || AGENTS[0];
   if (!agent) return null;
+  const provenance = `${T.presetsInspired}: ${agent.source} · ${tr(`confidence${agent.confidence[0].toUpperCase()}${agent.confidence.slice(1)}`)}`;
   return h(
     'div',
     { className: 'mst-body' },
-    h('div', { className: 'mst-card-title' }, T.presetsTitle),
     h(
       'div',
       { className: 'mst-field' },
       h('span', null, T.presetsAgent),
       h(
         'select',
-        { className: 'mst-select', value: agent.id, onChange: (event) => setAgentId(event.target.value) },
+        {
+          className: 'mst-select',
+          value: agent.id,
+          'aria-label': T.presetsAgent,
+          onChange: (event) => setAgentId(event.target.value),
+        },
         AGENTS.map((item) => h('option', { key: item.id, value: item.id }, item.displayName)),
       ),
     ),
-    h('div', { className: 'mst-hint' }, T.presetsDesc),
     h(
       'div',
       { className: 'mst-chips' },
@@ -152,6 +165,7 @@ function PresetPicker({ state, onApply }) {
             key: theme.id,
             type: 'button',
             className: 'mst-chip',
+            title: provenance,
             'aria-pressed': active,
             onClick: () => onApply(agent, theme),
           },
@@ -160,11 +174,6 @@ function PresetPicker({ state, onApply }) {
           active ? h('span', { className: 'mst-hint' }, T.presetsApplied) : null,
         );
       }),
-    ),
-    h(
-      'div',
-      { className: 'mst-hint' },
-      `${T.presetsInspired}: ${agent.source} · ${tr(`confidence${agent.confidence[0].toUpperCase()}${agent.confidence.slice(1)}`)}`,
     ),
   );
 }
@@ -357,7 +366,7 @@ function downloadJson(filename, data) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function MinimalistPage() {
+function PureThemePage() {
   const { state, updateInfo } = useSettings();
   useLocaleRevision();
   const [draft, setDraft] = useState(() => paletteWithFallback(state.palette || readEffectivePalette()));
@@ -526,12 +535,6 @@ function MinimalistPage() {
   return h(
     'div',
     { className: 'mst-page' },
-    h(
-      'div',
-      { className: 'mst-page-head' },
-      h('div', null, h('div', { className: 'mst-title' }, T.title), h('div', { className: 'mst-sub' }, T.subtitle)),
-      h('span', { className: 'mst-badge', title: current }, `${T.currentTheme}: ${current}`),
-    ),
     updateInfo.newer
       ? h(
           'a',
@@ -541,7 +544,7 @@ function MinimalistPage() {
       : null,
     h(
       Card,
-      { title: T.themesTitle, desc: T.themesDesc },
+      { title: T.themesTitle, right: h(CurrentThemeBadge, { name: current }) },
       h(PresetPicker, { state, onApply: applyPreset }),
       h(Status, { status: presetStatus }),
       h('div', { className: 'mst-divider' }),
@@ -556,7 +559,6 @@ function MinimalistPage() {
         'div',
         { className: 'mst-body' },
         h('div', { className: 'mst-card-title' }, T.importTitle),
-        h('div', { className: 'mst-card-desc' }, T.importDesc),
         h(ImportDraft, {
           draft: importDraft,
           name: importName,

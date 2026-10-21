@@ -3,6 +3,10 @@
 // No images: the Glitter module was removed in 0.2.0.
 // ---------------------------------------------------------------------------
 
+// The package was renamed; carry a profile's saved themes over once instead of
+// making the rename look like data loss.
+const LEGACY_STORAGE_KEYS = ['dsh-simple-theme:settings:v1'];
+
 function defaultState() {
   return {
     v: 3,
@@ -18,7 +22,17 @@ function defaultState() {
 function loadState() {
   const base = defaultState();
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    let raw = window.localStorage.getItem(STORAGE_KEY);
+    let migrated = false;
+    if (!raw) {
+      for (const key of LEGACY_STORAGE_KEYS) {
+        raw = window.localStorage.getItem(key);
+        if (raw) {
+          migrated = true;
+          break;
+        }
+      }
+    }
     if (!raw) return base;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return base;
@@ -33,7 +47,7 @@ function loadState() {
       : parsed.presetId
         ? 'preset'
         : null;
-    return {
+    const next = {
       ...base,
       palette: sanitizePalette(parsed.palette),
       tokens: sanitizeTokens(parsed.tokens),
@@ -42,6 +56,8 @@ function loadState() {
       activeThemeId: typeof parsed.activeThemeId === 'string' ? parsed.activeThemeId : null,
       savedThemes: sanitizeSavedThemes(parsed.savedThemes),
     };
+    if (migrated) saveState(next);
+    return next;
   } catch {
     return base;
   }

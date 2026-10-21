@@ -6,7 +6,7 @@
 // so a language switch re-renders the settings page and the nav label.
 // ---------------------------------------------------------------------------
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const STORAGE_KEY = 'dsh-pure-theme:settings:v1';
 const STYLE_ID = 'dsh-pure-theme-runtime';
 const UI_STYLE_ID = 'dsh-pure-theme-ui';
@@ -16,24 +16,20 @@ const LOCALE_NS = 'dsh-pure-theme';
 // Localized copy.
 //
 // `zh` and `en` are complete. Other languages contribute the section name and
-// page title only; their remaining copy falls back to English through the
-// Harness locale fallback chain. That keeps the nav label correct in every
+// plugin-list title only; their remaining copy falls back to English through
+// the Harness locale fallback chain. That keeps the nav label correct in every
 // language DSH may add without pretending to ship a half-translated UI.
 // ---------------------------------------------------------------------------
 
 const MESSAGES = {
   en: {
-    nav: 'Minimalist Theme',
-    title: 'Minimalist Theme',
-    subtitle: 'One quiet page for the theme file, saved themes and the colours of the Harness itself.',
+    nav: 'Theme',
+    title: 'Theme',
     themesTitle: 'Theme library',
-    themesDesc: 'Start from another agent, from a file, or from a theme you saved earlier.',
     colorsTitle: 'Colours',
     colorsDesc: 'Click a swatch to pick a colour; changes apply to the Harness immediately.',
     currentTheme: 'Current',
     currentNone: 'Harness default',
-    presetsTitle: 'From another agent',
-    presetsDesc: 'Palettes migrated from public screenshots and brand material, not reproductions.',
     presetsAgent: 'Agent',
     presetsApply: 'Apply',
     presetsApplied: 'Active',
@@ -53,7 +49,6 @@ const MESSAGES = {
     savedFromCustom: 'Custom colours',
     savedDeleteConfirm: 'Delete this theme?',
     importTitle: 'Import a theme file',
-    importDesc: 'Upload a .json / .dshtheme file, or a VS Code colour theme. Name it before saving.',
     importUpload: 'Choose file',
     importDrop: 'Drop a theme file here, or choose one',
     importHint: '.json · .dshtheme · VS Code theme · colours are read locally',
@@ -68,7 +63,7 @@ const MESSAGES = {
     importEmpty: 'Still using the colours already on screen.',
     importLoaded: 'Theme loaded. Name it, then save.',
     applied: 'Applied.',
-    exampleName: 'Minimal dark',
+    exampleName: 'Pure dark',
     exportCurrent: 'Export current theme',
     downloadExample: 'Download example',
     colorLiveHint: 'Changes apply immediately. Save the current colours to keep them in My themes.',
@@ -109,24 +104,18 @@ const MESSAGES = {
     roleAccentTextHint: 'Text on an accent fill',
     previewLabel: 'Preview',
     previewBrand: 'DSH',
-    previewNav: 'Projects',
-    previewMessage: 'A quieter workspace, with the colours you choose.',
     previewCard: 'Theme library',
     previewButton: 'Save',
     previewInput: 'Message the Harness…',
   },
   zh: {
-    nav: '极简主题',
-    title: '极简主题',
-    subtitle: '一个安静的地方：主题文件、我的主题，以及 Harness 各组件的颜色。',
+    nav: '主题',
+    title: '主题',
     themesTitle: '主题库',
-    themesDesc: '从其他 Agent、主题文件，或之前保存的主题开始。',
     colorsTitle: '配色',
     colorsDesc: '点击色块取色，修改会立即应用到 Harness。',
     currentTheme: '当前',
     currentNone: 'Harness 默认',
-    presetsTitle: '从其他 Agent 开始',
-    presetsDesc: '取自公开截图与品牌资料的配色，不是对原产品的复刻。',
     presetsAgent: 'Agent',
     presetsApply: '应用',
     presetsApplied: '使用中',
@@ -146,7 +135,6 @@ const MESSAGES = {
     savedFromCustom: '自定义配色',
     savedDeleteConfirm: '删除这个主题？',
     importTitle: '导入主题文件',
-    importDesc: '上传 .json / .dshtheme，或 VS Code 配色主题。保存前可以先命名。',
     importUpload: '选择文件',
     importDrop: '把主题文件拖到这里，或选择文件',
     importHint: '.json · .dshtheme · VS Code 主题 · 颜色只在本机读取',
@@ -161,7 +149,7 @@ const MESSAGES = {
     importEmpty: '仍使用屏幕上现有的颜色。',
     importLoaded: '已载入，先命名再保存。',
     applied: '已应用。',
-    exampleName: '极简暗色',
+    exampleName: '纯净暗色',
     exportCurrent: '导出当前主题',
     downloadExample: '下载示例文件',
     colorLiveHint: '改色会立即生效；保存后才会进入「我的主题」。',
@@ -202,46 +190,44 @@ const MESSAGES = {
     roleAccentTextHint: '强调色上的文字',
     previewLabel: '预览',
     previewBrand: 'DSH',
-    previewNav: '项目',
-    previewMessage: '一个更安静的工作区，用你选的颜色。',
     previewCard: '主题库',
     previewButton: '保存',
     previewInput: '给 Harness 发消息…',
   },
-  'zh-TW': { nav: '極簡主題', title: '極簡主題' },
-  ja: { nav: 'ミニマルテーマ', title: 'ミニマルテーマ' },
-  ko: { nav: '미니멀 테마', title: '미니멀 테마' },
-  fr: { nav: 'Thème minimaliste', title: 'Thème minimaliste' },
-  de: { nav: 'Minimalistisches Thema', title: 'Minimalistisches Thema' },
-  es: { nav: 'Tema minimalista', title: 'Tema minimalista' },
-  pt: { nav: 'Tema minimalista', title: 'Tema minimalista' },
-  'pt-BR': { nav: 'Tema minimalista', title: 'Tema minimalista' },
-  ru: { nav: 'Минималистичная тема', title: 'Минималистичная тема' },
-  it: { nav: 'Tema minimalista', title: 'Tema minimalista' },
-  nl: { nav: 'Minimalistisch thema', title: 'Minimalistisch thema' },
-  pl: { nav: 'Minimalistyczny motyw', title: 'Minimalistyczny motyw' },
-  tr: { nav: 'Minimalist tema', title: 'Minimalist tema' },
-  ar: { nav: 'سمة بسيطة', title: 'سمة بسيطة' },
-  hi: { nav: 'मिनिमलिस्ट थीम', title: 'मिनिमलिस्ट थीम' },
-  id: { nav: 'Tema minimalis', title: 'Tema minimalis' },
-  vi: { nav: 'Chủ đề tối giản', title: 'Chủ đề tối giản' },
-  th: { nav: 'ธีมมินิมอล', title: 'ธีมมินิมอล' },
-  sv: { nav: 'Minimalistiskt tema', title: 'Minimalistiskt tema' },
-  da: { nav: 'Minimalistisk tema', title: 'Minimalistisk tema' },
-  fi: { nav: 'Minimalistinen teema', title: 'Minimalistinen teema' },
-  nb: { nav: 'Minimalistisk tema', title: 'Minimalistisk tema' },
-  cs: { nav: 'Minimalistický motiv', title: 'Minimalistický motiv' },
-  el: { nav: 'Μινιμαλιστικό θέμα', title: 'Μινιμαλιστικό θέμα' },
-  he: { nav: 'ערכת עיצוב מינימליסטית', title: 'ערכת עיצוב מינימליסטית' },
-  ro: { nav: 'Temă minimalistă', title: 'Temă minimalistă' },
-  hu: { nav: 'Minimalista téma', title: 'Minimalista téma' },
-  bg: { nav: 'Минималистична тема', title: 'Минималистична тема' },
-  sk: { nav: 'Minimalistická téma', title: 'Minimalistická téma' },
-  hr: { nav: 'Minimalistička tema', title: 'Minimalistička tema' },
-  sr: { nav: 'Minimalistička tema', title: 'Minimalistička tema' },
-  uk: { nav: 'Мінімалістична тема', title: 'Мінімалістична тема' },
-  ms: { nav: 'Tema minimalis', title: 'Tema minimalis' },
-  fil: { nav: 'Minimalist na tema', title: 'Minimalist na tema' },
+  'zh-TW': { nav: '主題', title: '主題' },
+  ja: { nav: 'テーマ', title: 'テーマ' },
+  ko: { nav: '테마', title: '테마' },
+  fr: { nav: 'Thème', title: 'Thème' },
+  de: { nav: 'Design', title: 'Design' },
+  es: { nav: 'Tema', title: 'Tema' },
+  pt: { nav: 'Tema', title: 'Tema' },
+  'pt-BR': { nav: 'Tema', title: 'Tema' },
+  ru: { nav: 'Тема', title: 'Тема' },
+  it: { nav: 'Tema', title: 'Tema' },
+  nl: { nav: 'Thema', title: 'Thema' },
+  pl: { nav: 'Motyw', title: 'Motyw' },
+  tr: { nav: 'Tema', title: 'Tema' },
+  ar: { nav: 'السمة', title: 'السمة' },
+  hi: { nav: 'थीम', title: 'थीम' },
+  id: { nav: 'Tema', title: 'Tema' },
+  vi: { nav: 'Chủ đề', title: 'Chủ đề' },
+  th: { nav: 'ธีม', title: 'ธีม' },
+  sv: { nav: 'Tema', title: 'Tema' },
+  da: { nav: 'Tema', title: 'Tema' },
+  fi: { nav: 'Teema', title: 'Teema' },
+  nb: { nav: 'Tema', title: 'Tema' },
+  cs: { nav: 'Motiv', title: 'Motiv' },
+  el: { nav: 'Θέμα', title: 'Θέμα' },
+  he: { nav: 'ערכת נושא', title: 'ערכת נושא' },
+  ro: { nav: 'Temă', title: 'Temă' },
+  hu: { nav: 'Téma', title: 'Téma' },
+  bg: { nav: 'Тема', title: 'Тема' },
+  sk: { nav: 'Téma', title: 'Téma' },
+  hr: { nav: 'Tema', title: 'Tema' },
+  sr: { nav: 'Tema', title: 'Tema' },
+  uk: { nav: 'Тема', title: 'Тема' },
+  ms: { nav: 'Tema', title: 'Tema' },
+  fil: { nav: 'Tema', title: 'Tema' },
 };
 
 let boundTranslate = null;
@@ -253,7 +239,7 @@ function tr(key, params) {
   return params && !boundTranslate ? format(template, params) : template;
 }
 
-/** String table facade: `T.title` always reads the current language. */
+/** String table facade: `T.<key>` always reads the current language. */
 const T = new Proxy(
   {},
   {

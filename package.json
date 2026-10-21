@@ -1,7 +1,7 @@
 {
   "name": "dsh-pure-theme",
-  "version": "0.2.0",
-  "description": "Minimalist theming for DeepSeek Harness: edit component colours, save named themes, and import theme files from one quiet settings page.",
+  "version": "0.3.0",
+  "description": "Theme editor for DeepSeek Harness: edit component colours, save named themes, and import theme files.",
   "type": "module",
   "license": "MIT",
   "author": "dsh-pure-theme contributors",
@@ -18,11 +18,12 @@
     "dsh",
     "dsh-plugin",
     "theme",
-    "minimalist",
+    "pure",
     "appearance",
     "palette"
   ],
   "main": "index.js",
+  "icon": "./icon.svg",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",

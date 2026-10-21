@@ -30,6 +30,10 @@ const plugin = {
       return () => clearStylesheet();
     }, 'dsh-pure-theme: theme stylesheet');
 
+    // DSH has no section-icon field in this release; decorate our rail row so
+    // it does not fall back to the generic settings gear.
+    ctx.effect(installSettingsNavIcon, 'dsh-pure-theme: settings nav icon');
+
     ctx.effect(() => {
       const onStorage = (event) => {
         if (event.key !== STORAGE_KEY) return;
@@ -59,7 +63,7 @@ const plugin = {
     }, 'dsh-pure-theme: page lifecycle');
 
     ctx.effect(() => {
-      window.__dshMinimalTheme = {
+      window.__dshPureTheme = {
         get state() {
           return getState();
         },
@@ -79,7 +83,7 @@ const plugin = {
         },
       };
       return () => {
-        delete window.__dshMinimalTheme;
+        delete window.__dshPureTheme;
       };
     }, 'dsh-pure-theme: debug handle');
 
@@ -88,12 +92,12 @@ const plugin = {
         ctx.slots.register(
           {
             name: 'settings.section',
-            id: 'minimalist-theme',
+            id: 'theme',
             order: 1,
             label: () => tr('nav'),
             locale: LOCALE_NS,
           },
-          MinimalistPage,
+          PureThemePage,
         ),
       );
     } catch (error) {
@@ -125,5 +129,9 @@ plugin.__internals = {
   PALETTE_ROLES,
   COLOR_GROUPS,
   readEffectivePalette,
-  components: { MinimalistPage, Card, ColorSwatch, ImportDraft, ColorEditor, PresetPicker, SavedThemeList, MiniPreview },
+  NAV_ATTR,
+  UI_CSS,
+  markSettingsNav,
+  installSettingsNavIcon,
+  components: { PureThemePage, Card, ColorSwatch, ImportDraft, ColorEditor, PresetPicker, SavedThemeList, MiniPreview },
 };

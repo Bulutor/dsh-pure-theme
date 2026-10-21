@@ -14,7 +14,7 @@ window.__ModuleLoader__.load({
     // so a language switch re-renders the settings page and the nav label.
     // ---------------------------------------------------------------------------
     
-    const VERSION = '0.2.0';
+    const VERSION = '0.3.0';
     const STORAGE_KEY = 'dsh-pure-theme:settings:v1';
     const STYLE_ID = 'dsh-pure-theme-runtime';
     const UI_STYLE_ID = 'dsh-pure-theme-ui';
@@ -24,24 +24,20 @@ window.__ModuleLoader__.load({
     // Localized copy.
     //
     // `zh` and `en` are complete. Other languages contribute the section name and
-    // page title only; their remaining copy falls back to English through the
-    // Harness locale fallback chain. That keeps the nav label correct in every
+    // plugin-list title only; their remaining copy falls back to English through
+    // the Harness locale fallback chain. That keeps the nav label correct in every
     // language DSH may add without pretending to ship a half-translated UI.
     // ---------------------------------------------------------------------------
     
     const MESSAGES = {
       en: {
-        nav: 'Minimalist Theme',
-        title: 'Minimalist Theme',
-        subtitle: 'One quiet page for the theme file, saved themes and the colours of the Harness itself.',
+        nav: 'Theme',
+        title: 'Theme',
         themesTitle: 'Theme library',
-        themesDesc: 'Start from another agent, from a file, or from a theme you saved earlier.',
         colorsTitle: 'Colours',
         colorsDesc: 'Click a swatch to pick a colour; changes apply to the Harness immediately.',
         currentTheme: 'Current',
         currentNone: 'Harness default',
-        presetsTitle: 'From another agent',
-        presetsDesc: 'Palettes migrated from public screenshots and brand material, not reproductions.',
         presetsAgent: 'Agent',
         presetsApply: 'Apply',
         presetsApplied: 'Active',
@@ -61,7 +57,6 @@ window.__ModuleLoader__.load({
         savedFromCustom: 'Custom colours',
         savedDeleteConfirm: 'Delete this theme?',
         importTitle: 'Import a theme file',
-        importDesc: 'Upload a .json / .dshtheme file, or a VS Code colour theme. Name it before saving.',
         importUpload: 'Choose file',
         importDrop: 'Drop a theme file here, or choose one',
         importHint: '.json · .dshtheme · VS Code theme · colours are read locally',
@@ -76,7 +71,7 @@ window.__ModuleLoader__.load({
         importEmpty: 'Still using the colours already on screen.',
         importLoaded: 'Theme loaded. Name it, then save.',
         applied: 'Applied.',
-        exampleName: 'Minimal dark',
+        exampleName: 'Pure dark',
         exportCurrent: 'Export current theme',
         downloadExample: 'Download example',
         colorLiveHint: 'Changes apply immediately. Save the current colours to keep them in My themes.',
@@ -117,24 +112,18 @@ window.__ModuleLoader__.load({
         roleAccentTextHint: 'Text on an accent fill',
         previewLabel: 'Preview',
         previewBrand: 'DSH',
-        previewNav: 'Projects',
-        previewMessage: 'A quieter workspace, with the colours you choose.',
         previewCard: 'Theme library',
         previewButton: 'Save',
         previewInput: 'Message the Harness…',
       },
       zh: {
-        nav: '极简主题',
-        title: '极简主题',
-        subtitle: '一个安静的地方：主题文件、我的主题，以及 Harness 各组件的颜色。',
+        nav: '主题',
+        title: '主题',
         themesTitle: '主题库',
-        themesDesc: '从其他 Agent、主题文件，或之前保存的主题开始。',
         colorsTitle: '配色',
         colorsDesc: '点击色块取色，修改会立即应用到 Harness。',
         currentTheme: '当前',
         currentNone: 'Harness 默认',
-        presetsTitle: '从其他 Agent 开始',
-        presetsDesc: '取自公开截图与品牌资料的配色，不是对原产品的复刻。',
         presetsAgent: 'Agent',
         presetsApply: '应用',
         presetsApplied: '使用中',
@@ -154,7 +143,6 @@ window.__ModuleLoader__.load({
         savedFromCustom: '自定义配色',
         savedDeleteConfirm: '删除这个主题？',
         importTitle: '导入主题文件',
-        importDesc: '上传 .json / .dshtheme，或 VS Code 配色主题。保存前可以先命名。',
         importUpload: '选择文件',
         importDrop: '把主题文件拖到这里，或选择文件',
         importHint: '.json · .dshtheme · VS Code 主题 · 颜色只在本机读取',
@@ -169,7 +157,7 @@ window.__ModuleLoader__.load({
         importEmpty: '仍使用屏幕上现有的颜色。',
         importLoaded: '已载入，先命名再保存。',
         applied: '已应用。',
-        exampleName: '极简暗色',
+        exampleName: '纯净暗色',
         exportCurrent: '导出当前主题',
         downloadExample: '下载示例文件',
         colorLiveHint: '改色会立即生效；保存后才会进入「我的主题」。',
@@ -210,46 +198,44 @@ window.__ModuleLoader__.load({
         roleAccentTextHint: '强调色上的文字',
         previewLabel: '预览',
         previewBrand: 'DSH',
-        previewNav: '项目',
-        previewMessage: '一个更安静的工作区，用你选的颜色。',
         previewCard: '主题库',
         previewButton: '保存',
         previewInput: '给 Harness 发消息…',
       },
-      'zh-TW': { nav: '極簡主題', title: '極簡主題' },
-      ja: { nav: 'ミニマルテーマ', title: 'ミニマルテーマ' },
-      ko: { nav: '미니멀 테마', title: '미니멀 테마' },
-      fr: { nav: 'Thème minimaliste', title: 'Thème minimaliste' },
-      de: { nav: 'Minimalistisches Thema', title: 'Minimalistisches Thema' },
-      es: { nav: 'Tema minimalista', title: 'Tema minimalista' },
-      pt: { nav: 'Tema minimalista', title: 'Tema minimalista' },
-      'pt-BR': { nav: 'Tema minimalista', title: 'Tema minimalista' },
-      ru: { nav: 'Минималистичная тема', title: 'Минималистичная тема' },
-      it: { nav: 'Tema minimalista', title: 'Tema minimalista' },
-      nl: { nav: 'Minimalistisch thema', title: 'Minimalistisch thema' },
-      pl: { nav: 'Minimalistyczny motyw', title: 'Minimalistyczny motyw' },
-      tr: { nav: 'Minimalist tema', title: 'Minimalist tema' },
-      ar: { nav: 'سمة بسيطة', title: 'سمة بسيطة' },
-      hi: { nav: 'मिनिमलिस्ट थीम', title: 'मिनिमलिस्ट थीम' },
-      id: { nav: 'Tema minimalis', title: 'Tema minimalis' },
-      vi: { nav: 'Chủ đề tối giản', title: 'Chủ đề tối giản' },
-      th: { nav: 'ธีมมินิมอล', title: 'ธีมมินิมอล' },
-      sv: { nav: 'Minimalistiskt tema', title: 'Minimalistiskt tema' },
-      da: { nav: 'Minimalistisk tema', title: 'Minimalistisk tema' },
-      fi: { nav: 'Minimalistinen teema', title: 'Minimalistinen teema' },
-      nb: { nav: 'Minimalistisk tema', title: 'Minimalistisk tema' },
-      cs: { nav: 'Minimalistický motiv', title: 'Minimalistický motiv' },
-      el: { nav: 'Μινιμαλιστικό θέμα', title: 'Μινιμαλιστικό θέμα' },
-      he: { nav: 'ערכת עיצוב מינימליסטית', title: 'ערכת עיצוב מינימליסטית' },
-      ro: { nav: 'Temă minimalistă', title: 'Temă minimalistă' },
-      hu: { nav: 'Minimalista téma', title: 'Minimalista téma' },
-      bg: { nav: 'Минималистична тема', title: 'Минималистична тема' },
-      sk: { nav: 'Minimalistická téma', title: 'Minimalistická téma' },
-      hr: { nav: 'Minimalistička tema', title: 'Minimalistička tema' },
-      sr: { nav: 'Minimalistička tema', title: 'Minimalistička tema' },
-      uk: { nav: 'Мінімалістична тема', title: 'Мінімалістична тема' },
-      ms: { nav: 'Tema minimalis', title: 'Tema minimalis' },
-      fil: { nav: 'Minimalist na tema', title: 'Minimalist na tema' },
+      'zh-TW': { nav: '主題', title: '主題' },
+      ja: { nav: 'テーマ', title: 'テーマ' },
+      ko: { nav: '테마', title: '테마' },
+      fr: { nav: 'Thème', title: 'Thème' },
+      de: { nav: 'Design', title: 'Design' },
+      es: { nav: 'Tema', title: 'Tema' },
+      pt: { nav: 'Tema', title: 'Tema' },
+      'pt-BR': { nav: 'Tema', title: 'Tema' },
+      ru: { nav: 'Тема', title: 'Тема' },
+      it: { nav: 'Tema', title: 'Tema' },
+      nl: { nav: 'Thema', title: 'Thema' },
+      pl: { nav: 'Motyw', title: 'Motyw' },
+      tr: { nav: 'Tema', title: 'Tema' },
+      ar: { nav: 'السمة', title: 'السمة' },
+      hi: { nav: 'थीम', title: 'थीम' },
+      id: { nav: 'Tema', title: 'Tema' },
+      vi: { nav: 'Chủ đề', title: 'Chủ đề' },
+      th: { nav: 'ธีม', title: 'ธีม' },
+      sv: { nav: 'Tema', title: 'Tema' },
+      da: { nav: 'Tema', title: 'Tema' },
+      fi: { nav: 'Teema', title: 'Teema' },
+      nb: { nav: 'Tema', title: 'Tema' },
+      cs: { nav: 'Motiv', title: 'Motiv' },
+      el: { nav: 'Θέμα', title: 'Θέμα' },
+      he: { nav: 'ערכת נושא', title: 'ערכת נושא' },
+      ro: { nav: 'Temă', title: 'Temă' },
+      hu: { nav: 'Téma', title: 'Téma' },
+      bg: { nav: 'Тема', title: 'Тема' },
+      sk: { nav: 'Téma', title: 'Téma' },
+      hr: { nav: 'Tema', title: 'Tema' },
+      sr: { nav: 'Tema', title: 'Tema' },
+      uk: { nav: 'Тема', title: 'Тема' },
+      ms: { nav: 'Tema', title: 'Tema' },
+      fil: { nav: 'Tema', title: 'Tema' },
     };
     
     let boundTranslate = null;
@@ -261,7 +247,7 @@ window.__ModuleLoader__.load({
       return params && !boundTranslate ? format(template, params) : template;
     }
     
-    /** String table facade: `T.title` always reads the current language. */
+    /** String table facade: `T.<key>` always reads the current language. */
     const T = new Proxy(
       {},
       {
@@ -778,6 +764,10 @@ window.__ModuleLoader__.load({
     // No images: the Glitter module was removed in 0.2.0.
     // ---------------------------------------------------------------------------
     
+    // The package was renamed; carry a profile's saved themes over once instead of
+    // making the rename look like data loss.
+    const LEGACY_STORAGE_KEYS = ['dsh-simple-theme:settings:v1'];
+    
     function defaultState() {
       return {
         v: 3,
@@ -793,7 +783,17 @@ window.__ModuleLoader__.load({
     function loadState() {
       const base = defaultState();
       try {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
+        let raw = window.localStorage.getItem(STORAGE_KEY);
+        let migrated = false;
+        if (!raw) {
+          for (const key of LEGACY_STORAGE_KEYS) {
+            raw = window.localStorage.getItem(key);
+            if (raw) {
+              migrated = true;
+              break;
+            }
+          }
+        }
         if (!raw) return base;
         const parsed = JSON.parse(raw);
         if (!parsed || typeof parsed !== 'object') return base;
@@ -808,7 +808,7 @@ window.__ModuleLoader__.load({
           : parsed.presetId
             ? 'preset'
             : null;
-        return {
+        const next = {
           ...base,
           palette: sanitizePalette(parsed.palette),
           tokens: sanitizeTokens(parsed.tokens),
@@ -817,6 +817,8 @@ window.__ModuleLoader__.load({
           activeThemeId: typeof parsed.activeThemeId === 'string' ? parsed.activeThemeId : null,
           savedThemes: sanitizeSavedThemes(parsed.savedThemes),
         };
+        if (migrated) saveState(next);
+        return next;
       } catch {
         return base;
       }
@@ -1116,12 +1118,19 @@ window.__ModuleLoader__.load({
     // its own look.
     // ---------------------------------------------------------------------------
     
+    // DSH 0.2.x picks settings-nav glyphs from a hard-coded id table and falls back
+    // to a gear for section ids it does not know. The slot contract has no icon
+    // option yet, so the plugin marks its own row and paints a palette with a mask.
+    // The SVG is monochrome: the pseudo-element inherits `currentColor`.
+    const NAV_ATTR = 'data-dsh-pure-theme-nav';
+    const NAV_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="black" stroke-width="1.6" stroke-linejoin="round" d="M12 2.8C6.8 2.8 2.8 6.4 2.8 11c0 4.6 4 8.2 9.2 8.2 1.2 0 2.2-1 2.2-2.2 0-.6-.3-1.2-.7-1.6-.4-.4-.4-1 0-1.4.4-.4 1-.4 1.4 0 .4.4 1 .6 1.6.6h.9c2.2 0 3.8-1.7 3.8-3.8 0-4.5-4-8-9.2-8Z"/><circle cx="7.2" cy="11.2" r="1.4" fill="black"/><circle cx="9.8" cy="7.6" r="1.4" fill="black"/><circle cx="14.2" cy="7.6" r="1.4" fill="black"/><circle cx="16.8" cy="11.2" r="1.4" fill="black"/></svg>`;
+    const NAV_ICON_MASK = `url("data:image/svg+xml,${encodeURIComponent(NAV_ICON_SVG)}")`;
+    
     const UI_CSS = `
-    .mst-page{display:flex;flex-direction:column;gap:14px;padding:24px 0 8px}
-    .mst-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-    .mst-title{font-size:16px;line-height:24px;font-weight:500;color:var(--dsw-alias-label-primary)}
-    .mst-sub{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);margin-top:2px;max-width:52em}
-    .mst-badge{font-size:11px;line-height:16px;padding:1px 8px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);border:.5px solid var(--dsw-alias-border-l2);white-space:nowrap;max-width:42%;overflow:hidden;text-overflow:ellipsis}
+    .mst-page{display:flex;flex-direction:column;gap:14px;padding:16px 0 8px}
+    .mst-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;line-height:16px;padding:2px 8px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:.5px solid var(--dsw-alias-border-l2);white-space:nowrap;max-width:min(320px,48%);min-width:0;flex:0 1 auto}
+    .mst-badge-label{opacity:.62}
+    .mst-badge-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
     .mst-card{border:.5px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-lg);background:var(--dsw-alias-bg-layer-1,var(--dsw-alias-bg-layer-2));padding:14px 16px}
     .mst-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
     .mst-card-title{font-size:13px;line-height:20px;font-weight:500;color:var(--dsw-alias-label-primary)}
@@ -1142,7 +1151,7 @@ window.__ModuleLoader__.load({
     .mst-input:focus,.mst-select:focus{outline:1px solid var(--dsw-alias-brand-primary);outline-offset:-1px}
     .mst-grow{flex:1;min-width:0}
     .mst-dots{display:flex;gap:3px;flex:none}
-    .mst-dot{width:12px;height:12px;border-radius:3px;border:.5px solid rgba(0,0,0,.14);flex:none}
+    .mst-dot{width:12px;height:12px;border-radius:3px;border:.5px solid rgba(127,127,127,.45);box-shadow:0 0 0 .5px rgba(0,0,0,.22);flex:none}
     .mst-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border-radius:var(--dsw-radius-sm);border:.5px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;cursor:pointer;text-align:left}
     .mst-chip:hover{background:var(--dsw-alias-interactive-bg-hover)}
     .mst-chip[aria-pressed=true]{border-color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 10%,transparent)}
@@ -1189,6 +1198,8 @@ window.__ModuleLoader__.load({
     .mst-warn{color:var(--dsw-alias-state-warn-primary,#d97706)}
     .mst-error{color:var(--dsw-alias-state-error-primary,#ef4444)}
     .mst-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:2px 2px 0}
+    [${NAV_ATTR}]>svg{display:none}
+    [${NAV_ATTR}]::before{content:"";width:16px;height:16px;flex:none;background:currentColor;-webkit-mask:${NAV_ICON_MASK} center/16px 16px no-repeat;mask:${NAV_ICON_MASK} center/16px 16px no-repeat}
     @media (max-width:720px){.mst-color-grid{grid-template-columns:1fr}.mst-preview{height:144px}}
     `;
 
@@ -1206,7 +1217,7 @@ window.__ModuleLoader__.load({
     
     const EXAMPLE_THEME = {
       $schema: 'https://github.com/Bulutor/dsh-pure-theme/blob/main/docs/theme-format.md',
-      name: 'Minimal dark',
+      name: 'Pure dark',
       author: '',
       basedOn: 'dark',
       palette: NATIVE_PALETTE,
@@ -1230,6 +1241,15 @@ window.__ModuleLoader__.load({
       if (!status) return null;
       const tone = status.kind === 'error' ? 'mst-error' : status.kind === 'warn' ? 'mst-warn' : 'mst-ok';
       return h('div', { className: `mst-status ${tone}` }, status.message);
+    }
+    
+    function CurrentThemeBadge({ name }) {
+      return h(
+        'span',
+        { className: 'mst-badge', title: name },
+        h('span', { className: 'mst-badge-label' }, `${T.currentTheme}:`),
+        h('span', { className: 'mst-badge-value' }, name),
+      );
     }
     
     function ColorSwatch({ role, value, onChange }) {
@@ -1320,21 +1340,25 @@ window.__ModuleLoader__.load({
       }, [state.activeName]);
       const agent = AGENTS.find((item) => item.id === agentId) || AGENTS[0];
       if (!agent) return null;
+      const provenance = `${T.presetsInspired}: ${agent.source} · ${tr(`confidence${agent.confidence[0].toUpperCase()}${agent.confidence.slice(1)}`)}`;
       return h(
         'div',
         { className: 'mst-body' },
-        h('div', { className: 'mst-card-title' }, T.presetsTitle),
         h(
           'div',
           { className: 'mst-field' },
           h('span', null, T.presetsAgent),
           h(
             'select',
-            { className: 'mst-select', value: agent.id, onChange: (event) => setAgentId(event.target.value) },
+            {
+              className: 'mst-select',
+              value: agent.id,
+              'aria-label': T.presetsAgent,
+              onChange: (event) => setAgentId(event.target.value),
+            },
             AGENTS.map((item) => h('option', { key: item.id, value: item.id }, item.displayName)),
           ),
         ),
-        h('div', { className: 'mst-hint' }, T.presetsDesc),
         h(
           'div',
           { className: 'mst-chips' },
@@ -1347,6 +1371,7 @@ window.__ModuleLoader__.load({
                 key: theme.id,
                 type: 'button',
                 className: 'mst-chip',
+                title: provenance,
                 'aria-pressed': active,
                 onClick: () => onApply(agent, theme),
               },
@@ -1355,11 +1380,6 @@ window.__ModuleLoader__.load({
               active ? h('span', { className: 'mst-hint' }, T.presetsApplied) : null,
             );
           }),
-        ),
-        h(
-          'div',
-          { className: 'mst-hint' },
-          `${T.presetsInspired}: ${agent.source} · ${tr(`confidence${agent.confidence[0].toUpperCase()}${agent.confidence.slice(1)}`)}`,
         ),
       );
     }
@@ -1552,7 +1572,7 @@ window.__ModuleLoader__.load({
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
     
-    function MinimalistPage() {
+    function PureThemePage() {
       const { state, updateInfo } = useSettings();
       useLocaleRevision();
       const [draft, setDraft] = useState(() => paletteWithFallback(state.palette || readEffectivePalette()));
@@ -1721,12 +1741,6 @@ window.__ModuleLoader__.load({
       return h(
         'div',
         { className: 'mst-page' },
-        h(
-          'div',
-          { className: 'mst-page-head' },
-          h('div', null, h('div', { className: 'mst-title' }, T.title), h('div', { className: 'mst-sub' }, T.subtitle)),
-          h('span', { className: 'mst-badge', title: current }, `${T.currentTheme}: ${current}`),
-        ),
         updateInfo.newer
           ? h(
               'a',
@@ -1736,7 +1750,7 @@ window.__ModuleLoader__.load({
           : null,
         h(
           Card,
-          { title: T.themesTitle, desc: T.themesDesc },
+          { title: T.themesTitle, right: h(CurrentThemeBadge, { name: current }) },
           h(PresetPicker, { state, onApply: applyPreset }),
           h(Status, { status: presetStatus }),
           h('div', { className: 'mst-divider' }),
@@ -1751,7 +1765,6 @@ window.__ModuleLoader__.load({
             'div',
             { className: 'mst-body' },
             h('div', { className: 'mst-card-title' }, T.importTitle),
-            h('div', { className: 'mst-card-desc' }, T.importDesc),
             h(ImportDraft, {
               draft: importDraft,
               name: importName,
@@ -1791,6 +1804,77 @@ window.__ModuleLoader__.load({
       );
     }
 
+    // ==== src/70-nav-icon.js ================================================
+    // ---------------------------------------------------------------------------
+    // Settings-nav identity.
+    //
+    // DSH 0.2.x renders the settings rail from a hard-coded section-id → glyph
+    // table and falls back to the settings gear for any id it does not know. The
+    // `settings.section` slot has no icon option yet, so a theme plugin otherwise
+    // looks like another gear page. Mark our row and let the page stylesheet paint
+    // the palette glyph instead; the marker is re-applied when the panel mounts or
+    // React replaces the row.
+    // ---------------------------------------------------------------------------
+    
+    const SETTINGS_NAV_SELECTOR = '[data-shortcut-modal="settings"] nav button';
+    
+    let navObserver = null;
+    let navFrame = 0;
+    
+    function scheduleSettingsNavMark() {
+      if (navFrame) return;
+      if (typeof requestAnimationFrame === 'function') {
+        navFrame = requestAnimationFrame(() => {
+          navFrame = 0;
+          markSettingsNav();
+        });
+      } else {
+        navFrame = setTimeout(() => {
+          navFrame = 0;
+          markSettingsNav();
+        }, 0);
+      }
+    }
+    
+    function markSettingsNav() {
+      if (typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return;
+      const label = String(tr('nav') || '').trim();
+      if (!label) return;
+      for (const button of document.querySelectorAll(SETTINGS_NAV_SELECTOR)) {
+        if (typeof button?.getAttribute !== 'function' || typeof button?.setAttribute !== 'function') continue;
+        if (button.getAttribute(NAV_ATTR) === 'true') continue;
+        if (String(button.textContent || '').trim() !== label) continue;
+        button.setAttribute(NAV_ATTR, 'true');
+      }
+    }
+    
+    function clearSettingsNavMarks() {
+      if (typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return;
+      for (const button of document.querySelectorAll(`[${NAV_ATTR}]`)) {
+        button.removeAttribute?.(NAV_ATTR);
+      }
+    }
+    
+    function installSettingsNavIcon() {
+      if (typeof document === 'undefined' || !document.body) return () => {};
+      markSettingsNav();
+      if (typeof MutationObserver !== 'function') return clearSettingsNavMarks;
+    
+      navObserver = new MutationObserver(scheduleSettingsNavMark);
+      navObserver.observe(document.body, { childList: true, subtree: true });
+    
+      return () => {
+        navObserver?.disconnect();
+        navObserver = null;
+        if (navFrame) {
+          if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(navFrame);
+          else clearTimeout(navFrame);
+          navFrame = 0;
+        }
+        clearSettingsNavMarks();
+      };
+    }
+
     // ==== src/90-plugin.js ==================================================
     // ---------------------------------------------------------------------------
     // Plugin entry: what the Harness Client loads.
@@ -1824,6 +1908,10 @@ window.__ModuleLoader__.load({
           return () => clearStylesheet();
         }, 'dsh-pure-theme: theme stylesheet');
     
+        // DSH has no section-icon field in this release; decorate our rail row so
+        // it does not fall back to the generic settings gear.
+        ctx.effect(installSettingsNavIcon, 'dsh-pure-theme: settings nav icon');
+    
         ctx.effect(() => {
           const onStorage = (event) => {
             if (event.key !== STORAGE_KEY) return;
@@ -1853,7 +1941,7 @@ window.__ModuleLoader__.load({
         }, 'dsh-pure-theme: page lifecycle');
     
         ctx.effect(() => {
-          window.__dshMinimalTheme = {
+          window.__dshPureTheme = {
             get state() {
               return getState();
             },
@@ -1873,7 +1961,7 @@ window.__ModuleLoader__.load({
             },
           };
           return () => {
-            delete window.__dshMinimalTheme;
+            delete window.__dshPureTheme;
           };
         }, 'dsh-pure-theme: debug handle');
     
@@ -1882,12 +1970,12 @@ window.__ModuleLoader__.load({
             ctx.slots.register(
               {
                 name: 'settings.section',
-                id: 'minimalist-theme',
+                id: 'theme',
                 order: 1,
                 label: () => tr('nav'),
                 locale: LOCALE_NS,
               },
-              MinimalistPage,
+              PureThemePage,
             ),
           );
         } catch (error) {
@@ -1919,7 +2007,11 @@ window.__ModuleLoader__.load({
       PALETTE_ROLES,
       COLOR_GROUPS,
       readEffectivePalette,
-      components: { MinimalistPage, Card, ColorSwatch, ImportDraft, ColorEditor, PresetPicker, SavedThemeList, MiniPreview },
+      NAV_ATTR,
+      UI_CSS,
+      markSettingsNav,
+      installSettingsNavIcon,
+      components: { PureThemePage, Card, ColorSwatch, ImportDraft, ColorEditor, PresetPicker, SavedThemeList, MiniPreview },
     };
 
     return plugin;

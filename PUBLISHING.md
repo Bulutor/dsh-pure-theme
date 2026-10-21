@@ -33,8 +33,8 @@ url: https://github.com/<你>/dsh-pure-theme
 name: <你>/dsh-pure-theme
 category: theme
 description:
-  en: Minimalist theming for DeepSeek Harness — edit component colours, save named themes, and import theme files from one quiet settings page.
-  zh: 极简换肤：在设置页直接编辑 Harness 各组件颜色、保存命名主题、导入主题文件。
+  en: Theme editor for DeepSeek Harness — edit component colours, save named themes, and import theme files from one settings page.
+  zh: 主题换肤：在设置页直接编辑 Harness 各组件颜色、保存命名主题、导入主题文件。
 ```
 
 对方的硬性要求，本仓库已全部满足：
@@ -56,13 +56,13 @@ description:
 4. `node scripts/build.mjs && node scripts/check.mjs`；
 5. `npm publish`。
 
-用户侧的提醒链路：插件在打开「极简主题」页面时请求 `https://registry.npmjs.org/dsh-pure-theme/latest`，比对本地 `VERSION`，发现更高版本就在页面顶部显示「有新版本 vX.Y.Z」。dsh-market 自己的更新检查也会读到新版本并给出升级按钮。
+用户侧的提醒链路：插件在打开「主题」页面时请求 `https://registry.npmjs.org/dsh-pure-theme/latest`，比对本地 `VERSION`，发现更高版本就在页面顶部显示「有新版本 vX.Y.Z」。dsh-market 自己的更新检查也会读到新版本并给出升级按钮。
 
 ## 4. 发布检查清单
 
 - [ ] `node scripts/build.mjs` 无报错，`client.js` 已更新
 - [ ] `node scripts/check.mjs` 全绿（插件契约 / 样式生成 / 主题解析 / 对比度 / 版本号）
 - [ ] `npm pack --dry-run` 里包含 `icon.svg` 与 `locale/zh.json`
-- [ ] `icon.svg` 在浏览器里能正常显示（256×256，上衣图形）
+- [ ] `icon.svg` 在浏览器里能正常显示（256×256，调色盘图形，同时在 `package.json` 的 `icon` 字段里声明）
 - [ ] README 的安装命令与实际包名一致
 - [ ] 版本号三处一致：`package.json`、`src/10-core.js`、`CHANGELOG.md`

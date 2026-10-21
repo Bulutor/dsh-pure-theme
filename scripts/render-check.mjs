@@ -133,12 +133,11 @@ plugin.apply({
 });
 const { components } = plugin.__internals;
 
-const html = renderToStaticMarkup(React.createElement(components.MinimalistPage));
+const html = renderToStaticMarkup(React.createElement(components.PureThemePage));
 assert.ok(html.length > 2000, 'settings page rendered something substantial');
 for (const needle of [
-  '极简主题',
   '主题库',
-  '从其他 Agent 开始',
+  '当前',
   '我的主题',
   '导入主题文件',
   '配色',
@@ -150,6 +149,15 @@ for (const needle of [
 ]) {
   assert.ok(html.includes(needle), `page contains "${needle}"`);
 }
+for (const removed of [
+  '极简主题',
+  '一个安静的地方',
+  '从其他 Agent',
+  '取自公开截图',
+  '上传 .json',
+]) {
+  assert.ok(!html.includes(removed), `page no longer contains "${removed}"`);
+}
 assert.ok(html.includes('Claude Code · Warm ink'), 'current theme name is shown');
 assert.ok(html.includes('My warm desk'), 'saved theme is listed');
 assert.ok(!html.includes('炫彩'), 'Glitter module is gone');
@@ -158,8 +166,8 @@ assert.ok(!html.includes('undefined'), 'no literal undefined');
 
 // The top-level section label is provided by the plugin registration, not by
 // the page component; check it through the same translation binding.
-assert.equal(plugin.__internals.MESSAGES.zh.nav, '极简主题');
-assert.equal(plugin.__internals.MESSAGES.en.nav, 'Minimalist Theme');
+assert.equal(plugin.__internals.MESSAGES.zh.nav, '主题');
+assert.equal(plugin.__internals.MESSAGES.en.nav, 'Theme');
 
-console.log(`rendered MinimalistPage: ${html.length} bytes`);
+console.log(`rendered PureThemePage: ${html.length} bytes`);
 console.log('ok — settings page renders with real React');

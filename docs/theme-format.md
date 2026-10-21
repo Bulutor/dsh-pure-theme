@@ -10,7 +10,7 @@
 ```json
 {
   "$schema": "https://github.com/Bulutor/dsh-pure-theme/blob/main/docs/theme-format.md",
-  "name": "Minimal desk",
+  "name": "Pure desk",
   "author": "you",
   "basedOn": "dark",
   "palette": {
