@@ -35,7 +35,8 @@ window.__ModuleLoader__.load({
         title: 'Theme',
         themesTitle: 'Theme library',
         colorsTitle: 'Colours',
-        colorsDesc: 'Click a swatch to pick a colour; changes apply to the mode you are editing.',
+        colorsDesc:
+          'Click a swatch to pick a colour; changes are written to the dark or light mode you are editing, and saving adds them to My themes.',
         currentTheme: 'Current',
         currentNone: 'Harness default',
         presetsAgent: 'Agent',
@@ -74,11 +75,12 @@ window.__ModuleLoader__.load({
         exampleName: 'Pure',
         exportCurrent: 'Export current theme',
         downloadExample: 'Download example',
-        colorLiveHint: 'Changes apply immediately. Save both modes to keep them in My themes.',
+        colorLiveHint: 'This mode has its own colours; edits apply immediately.',
         colorContrastWarn: 'Text and canvas contrast is low; reading may be hard.',
         colorSecondaryContrastWarn: 'Secondary text and canvas contrast is low.',
         colorAccentContrastWarn: 'Text on the accent colour is hard to read.',
         modeLabel: 'Mode',
+        modeLabelPrefix: 'Mode:',
         modeDark: 'Dark',
         modeLight: 'Light',
         currentMode: 'Harness: {mode}',
@@ -141,7 +143,7 @@ window.__ModuleLoader__.load({
         title: '主题',
         themesTitle: '主题库',
         colorsTitle: '配色',
-        colorsDesc: '点击色块取色；修改会写入正在编辑的模式。',
+        colorsDesc: '点击色块取色；改色会写入正在编辑的深浅模式，保存后进入「我的主题」。',
         currentTheme: '当前',
         currentNone: 'Harness 默认',
         presetsAgent: 'Agent',
@@ -180,11 +182,12 @@ window.__ModuleLoader__.load({
         exampleName: '纯净',
         exportCurrent: '导出当前主题',
         downloadExample: '下载示例文件',
-        colorLiveHint: '改色会立即写入对应模式；保存后两张色板一起进入「我的主题」。',
+        colorLiveHint: '此模式有独立配色；改色会立即生效。',
         colorContrastWarn: '文字与画布对比度偏低，阅读可能吃力。',
         colorSecondaryContrastWarn: '次文字与画布对比度偏低。',
         colorAccentContrastWarn: '强调色上的文字对比度偏低。',
         modeLabel: '模式',
+        modeLabelPrefix: '模式：',
         modeDark: '深色',
         modeLight: '浅色',
         currentMode: 'DSH 当前：{mode}',
@@ -1741,6 +1744,8 @@ window.__ModuleLoader__.load({
     .mst-chip[aria-pressed=true]{border-color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 10%,transparent)}
     .mst-chips{display:flex;flex-wrap:wrap;gap:6px}
     .mst-mode-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+    .mst-mode-control{display:inline-flex;align-items:center;gap:8px;min-width:0}
+    .mst-mode-label{font-size:11px;line-height:17px;color:var(--dsw-alias-label-secondary);white-space:nowrap}
     .mst-modes{display:inline-flex;padding:2px;border-radius:999px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
     .mst-mode{height:24px;padding:0 10px;border:0;border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
     .mst-mode:hover{color:var(--dsw-alias-label-primary)}
@@ -2223,7 +2228,12 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { className: 'mst-mode-row' },
-          h(ModeSwitch, { mode, coverage, onChange: onMode }),
+          h(
+            'div',
+            { className: 'mst-mode-control' },
+            h('span', { className: 'mst-mode-label' }, T.modeLabelPrefix),
+            h(ModeSwitch, { mode, coverage, onChange: onMode }),
+          ),
           h('span', { className: 'mst-hint' }, format(T.currentMode, { mode: modeLabel(dshMode) })),
         ),
         h(MiniPreview, { palette, mode }),
@@ -2236,7 +2246,6 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', className: 'mst-btn', onClick: onGenerateLight }, T.generateLight),
             )
           : null,
-        h('div', { className: 'mst-hint' }, T.colorLiveHint),
         COLOR_GROUPS.map((group) =>
           h(
             'div',

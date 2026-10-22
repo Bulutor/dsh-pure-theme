@@ -202,6 +202,9 @@ assert.equal(api.MESSAGES.zh.modeBoth, '深色 + 浅色');
 assert.equal(api.MESSAGES.en.clearModeEdits, 'Clear current mode edits');
 assert.equal(api.MESSAGES.zh.clearModeEdits, '清除当前深浅模式配色编辑');
 assert.equal(api.MESSAGES.zh.resetMode, undefined, 'the native per-mode reset copy is gone');
+assert.equal(api.MESSAGES.zh.colorsDesc, '点击色块取色；改色会写入正在编辑的深浅模式，保存后进入「我的主题」。');
+assert.equal(api.MESSAGES.zh.modeLabelPrefix, '模式：');
+assert.equal(api.MESSAGES.en.modeLabelPrefix, 'Mode:');
 
 const enKeys = Object.keys(api.MESSAGES.en).sort();
 const zhKeys = Object.keys(api.MESSAGES.zh).sort();

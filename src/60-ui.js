@@ -425,7 +425,12 @@ function ColorEditor({
     h(
       'div',
       { className: 'mst-mode-row' },
-      h(ModeSwitch, { mode, coverage, onChange: onMode }),
+      h(
+        'div',
+        { className: 'mst-mode-control' },
+        h('span', { className: 'mst-mode-label' }, T.modeLabelPrefix),
+        h(ModeSwitch, { mode, coverage, onChange: onMode }),
+      ),
       h('span', { className: 'mst-hint' }, format(T.currentMode, { mode: modeLabel(dshMode) })),
     ),
     h(MiniPreview, { palette, mode }),
@@ -438,7 +443,6 @@ function ColorEditor({
           h('button', { type: 'button', className: 'mst-btn', onClick: onGenerateLight }, T.generateLight),
         )
       : null,
-    h('div', { className: 'mst-hint' }, T.colorLiveHint),
     COLOR_GROUPS.map((group) =>
       h(
         'div',

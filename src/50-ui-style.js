@@ -43,6 +43,8 @@ const UI_CSS = `
 .mst-chip[aria-pressed=true]{border-color:var(--dsw-alias-brand-primary);background:color-mix(in srgb,var(--dsw-alias-brand-primary) 10%,transparent)}
 .mst-chips{display:flex;flex-wrap:wrap;gap:6px}
 .mst-mode-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.mst-mode-control{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.mst-mode-label{font-size:11px;line-height:17px;color:var(--dsw-alias-label-secondary);white-space:nowrap}
 .mst-modes{display:inline-flex;padding:2px;border-radius:999px;border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
 .mst-mode{height:24px;padding:0 10px;border:0;border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 .mst-mode:hover{color:var(--dsw-alias-label-primary)}

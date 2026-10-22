@@ -141,6 +141,8 @@ for (const needle of [
   '我的主题',
   '导入主题文件',
   '配色',
+  '点击色块取色；改色会写入正在编辑的深浅模式，保存后进入「我的主题」。',
+  '模式：',
   '保存到我的主题',
   '恢复 Harness 默认',
   '侧边栏',
@@ -154,6 +156,8 @@ for (const needle of [
   assert.ok(html.includes(needle), `page contains "${needle}"`);
 }
 assert.ok(!html.includes('恢复此模式'), 'the native per-mode reset is gone');
+assert.ok(!html.includes('修改会写入正在编辑的模式'), 'the old colours description is replaced');
+assert.ok(!html.includes('改色会立即写入对应模式'), 'the old standalone colours hint is gone');
 for (const removed of [
   '极简主题',
   '一个安静的地方',
