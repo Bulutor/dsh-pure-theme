@@ -90,8 +90,9 @@ window.__ModuleLoader__.load({
         modeNone: 'No colours',
         generateLight: 'Generate a light draft',
         lightDraftCreated: 'Light draft generated. Review it, then save.',
-        resetMode: 'Restore this mode',
-        resetModeDone: 'Restored {mode} to the Harness palette.',
+        clearModeEdits: 'Clear current mode edits',
+        clearModeEditsIdle: 'No colour edits to clear in this mode.',
+        clearModeEditsDone: 'Cleared {mode} edits; restored the original colours from “{name}”.',
         appliedBoth: 'Applied to dark and light.',
         appliedNativeMode: 'Applied; {mode} stays native.',
         appliedInactive: 'Saved; switch to {mode} to see it.',
@@ -195,8 +196,9 @@ window.__ModuleLoader__.load({
         modeNone: '未配色',
         generateLight: '生成浅色草稿',
         lightDraftCreated: '已生成浅色草稿，确认后保存。',
-        resetMode: '恢复此模式',
-        resetModeDone: '已恢复{mode}为 Harness 配色。',
+        clearModeEdits: '清除当前深浅模式配色编辑',
+        clearModeEditsIdle: '当前模式没有配色编辑。',
+        clearModeEditsDone: '已清除{mode}的配色编辑，恢复「{name}」的原配色。',
         appliedBoth: '已应用到深色和浅色。',
         appliedNativeMode: '已应用；{mode}保持原生。',
         appliedInactive: '已保存；切到{mode}查看。',
@@ -1109,8 +1111,10 @@ window.__ModuleLoader__.load({
     // ==== src/30-storage.js =================================================
     // ---------------------------------------------------------------------------
     // Persistence: settings in localStorage, named themes in the same document.
-    // v4 stores one optional palette per colour scheme; v3's single dark palette
-    // migrates to `palettes.dark` so existing themes never change their meaning.
+    // v5 stores one optional palette per colour scheme plus the `baseline` of the
+    // theme as it was applied, so one mode can be reset to its unedited colours
+    // without touching the other. v3's single dark palette migrates to
+    // `palettes.dark` so existing themes never change their meaning.
     // ---------------------------------------------------------------------------
 
     // The package was renamed; carry a profile's saved themes over once instead of
@@ -1128,12 +1132,13 @@ window.__ModuleLoader__.load({
 
     function defaultState() {
       return {
-        v: 4,
+        v: 5,
         palettes: defaultPalettes(),
         tokens: defaultTokens(),
         activeName: '',
         activeSource: null,
         activeThemeId: null,
+        baseline: null,
         savedThemes: [],
       };
     }
@@ -1191,9 +1196,17 @@ window.__ModuleLoader__.load({
           activeName,
           activeSource,
           activeThemeId: typeof parsed.activeThemeId === 'string' ? parsed.activeThemeId : null,
+          baseline: sanitizeBaseline(parsed.baseline),
           savedThemes: sanitizeSavedThemes(parsed.savedThemes),
         };
-        if (migrated || parsed.v !== 4 || !parsed.palettes) saveState(next);
+        // v4 and older never stored a baseline. Treat the colours already on screen
+        // as the unedited state so existing users see the new control immediately;
+        // the first later edit still has a sensible starting point.
+        if (!next.baseline && (palettes.dark || palettes.light || tokens.dark || tokens.light)) {
+          next.baseline = baselineFromState(next);
+          migrated = true;
+        }
+        if (migrated || parsed.v !== 5 || !parsed.palettes) saveState(next);
         return next;
       } catch {
         return base;
@@ -1206,6 +1219,107 @@ window.__ModuleLoader__.load({
       } catch {
         // A full or blocked localStorage must not break the settings page.
       }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Baseline: the theme's colours at the moment it was applied. The colours card
+    // edits one mode at a time, so this is what "discard the edits in this mode"
+    // restores. It is deliberately a snapshot, not a reference: deleting or
+    // overwriting a saved theme must not change what the button restores.
+    // ---------------------------------------------------------------------------
+
+    function clonePalettes(palettes) {
+      return {
+        dark: palettes && palettes.dark ? { ...palettes.dark } : null,
+        light: palettes && palettes.light ? { ...palettes.light } : null,
+      };
+    }
+
+    function cloneTokens(tokens) {
+      return {
+        dark: tokens && tokens.dark ? { ...tokens.dark } : null,
+        light: tokens && tokens.light ? { ...tokens.light } : null,
+      };
+    }
+
+    function createBaseline({ palettes, tokens, name, source, themeId } = {}) {
+      return {
+        palettes: clonePalettes(palettes),
+        tokens: cloneTokens(tokens),
+        name: typeof name === 'string' ? name.trim().slice(0, 80) : '',
+        source: ['preset', 'saved', 'custom'].includes(source) ? source : null,
+        themeId: typeof themeId === 'string' && themeId ? themeId : null,
+      };
+    }
+
+    function baselineFromState(value) {
+      return createBaseline({
+        palettes: value.palettes,
+        tokens: value.tokens,
+        name: value.activeName,
+        source: value.activeSource,
+        themeId: value.activeThemeId,
+      });
+    }
+
+    function sanitizeBaseline(input) {
+      if (!input || typeof input !== 'object') return null;
+      if (!('palettes' in input) && !('tokens' in input)) return null;
+      const name = typeof input.name === 'string' ? input.name.trim().slice(0, 80) : '';
+      const source = ['preset', 'saved', 'custom'].includes(input.source) ? input.source : null;
+      return {
+        palettes: sanitizePalettes(input.palettes),
+        tokens: sanitizeTokensByMode(input.tokens),
+        name,
+        source,
+        themeId: typeof input.themeId === 'string' && input.themeId ? input.themeId : null,
+      };
+    }
+
+    /** Shallow value comparison for palette roles and token names. */
+    function sameStringMap(left, right) {
+      if (!left || !right) return !left && !right;
+      const leftKeys = Object.keys(left);
+      const rightKeys = Object.keys(right);
+      if (leftKeys.length !== rightKeys.length) return false;
+      return leftKeys.every((key) => left[key] === right[key]);
+    }
+
+    function hasModeEdits(value, baseline, mode) {
+      if (!baseline || (mode !== 'dark' && mode !== 'light')) return false;
+      return !(
+        sameStringMap(value.palettes && value.palettes[mode], baseline.palettes[mode]) &&
+        sameStringMap(value.tokens && value.tokens[mode], baseline.tokens[mode])
+      );
+    }
+
+    function modesMatchBaseline(value, baseline) {
+      if (!baseline) return false;
+      return MODES.every((mode) => !hasModeEdits(value, baseline, mode));
+    }
+
+    /**
+     * Build the state patch for discarding one mode's edits. `clean` says whether
+     * both modes now match the baseline, which decides whether the theme can be
+     * marked as active again.
+     */
+    function restoreModeFromBaseline(value, baseline, mode) {
+      if (!baseline || (mode !== 'dark' && mode !== 'light')) return null;
+      const palettes = clonePalettes(value.palettes);
+      const tokens = cloneTokens(value.tokens);
+      palettes[mode] = baseline.palettes[mode] ? { ...baseline.palettes[mode] } : null;
+      tokens[mode] = baseline.tokens[mode] ? { ...baseline.tokens[mode] } : null;
+      const clean = modesMatchBaseline({ palettes, tokens }, baseline);
+      return {
+        clean,
+        patch: {
+          palettes,
+          tokens,
+          activeName: clean ? baseline.name : (value.activeName || baseline.name || '').slice(0, 80),
+          activeSource: clean ? baseline.source : 'custom',
+          activeThemeId: clean ? baseline.themeId : null,
+        },
+      };
     }
 
     function sanitizePalette(input) {
@@ -1734,20 +1848,6 @@ window.__ModuleLoader__.load({
       );
     }
 
-    function clonePalettes(palettes) {
-      return {
-        dark: palettes && palettes.dark ? { ...palettes.dark } : null,
-        light: palettes && palettes.light ? { ...palettes.light } : null,
-      };
-    }
-
-    function cloneTokens(tokens) {
-      return {
-        dark: tokens && tokens.dark ? { ...tokens.dark } : null,
-        light: tokens && tokens.light ? { ...tokens.light } : null,
-      };
-    }
-
     function modesOf(value) {
       const palettes = value && value.palettes ? value.palettes : value || {};
       const modes = [];
@@ -2100,13 +2200,15 @@ window.__ModuleLoader__.load({
       mode,
       dshMode,
       coverage,
+      baseline,
+      modeDirty,
       name,
       onName,
       onMode,
       onColor,
       onSave,
       onReset,
-      onResetMode,
+      onClearModeEdits,
       onGenerateLight,
       onExport,
       onExample,
@@ -2172,7 +2274,19 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { className: 'mst-row' },
-          coverage[mode] ? h('button', { type: 'button', className: 'mst-btn', onClick: onResetMode }, T.resetMode) : null,
+          baseline
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'mst-btn',
+                  disabled: !modeDirty,
+                  title: modeDirty ? undefined : T.clearModeEditsIdle,
+                  onClick: onClearModeEdits,
+                },
+                T.clearModeEdits,
+              )
+            : null,
           h('button', { type: 'button', className: 'mst-btn', onClick: onReset }, T.colorReset),
           h('button', { type: 'button', className: 'mst-btn', onClick: onExport }, T.exportCurrent),
           h('button', { type: 'button', className: 'mst-btn mst-btn-ghost', onClick: onExample }, T.downloadExample),
@@ -2228,16 +2342,20 @@ window.__ModuleLoader__.load({
       }, [updateInfo.checked]);
 
       const coverage = { dark: Boolean(drafts.dark), light: Boolean(drafts.light) };
+      const baseline = state.baseline;
+      const modeDirty = baseline ? hasModeEdits(state, baseline, mode) : false;
 
       const applyPreset = (agent, theme) => {
         const palettes = clonePalettes(theme.palettes);
         const tokens = cloneTokens(theme.tokens);
+        const activeName = `${agent.displayName} · ${theme.displayName}`;
         patchState({
           palettes,
           tokens,
-          activeName: `${agent.displayName} · ${theme.displayName}`,
+          activeName,
           activeSource: 'preset',
           activeThemeId: null,
+          baseline: createBaseline({ palettes, tokens, name: activeName, source: 'preset', themeId: null }),
         });
         setPresetStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
       };
@@ -2251,6 +2369,7 @@ window.__ModuleLoader__.load({
           activeName: theme.name,
           activeSource: 'saved',
           activeThemeId: theme.id,
+          baseline: createBaseline({ palettes, tokens, name: theme.name, source: 'saved', themeId: theme.id }),
         });
         setPresetStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
       };
@@ -2275,15 +2394,22 @@ window.__ModuleLoader__.load({
           activeName: themeName,
           activeSource: 'saved',
           activeThemeId: item.id,
+          baseline: createBaseline({ palettes, tokens, name: themeName, source: 'saved', themeId: item.id }),
         });
         setColorStatus({ kind: 'ok', message: T.colorSavedName.replace('{name}', () => themeName) });
       };
 
       const deleteSaved = (theme) => {
         if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(T.savedDeleteConfirm)) return;
+        const baseline =
+          state.baseline && state.baseline.themeId === theme.id
+            ? { ...state.baseline, themeId: null, source: 'custom' }
+            : state.baseline;
         patchState({
           savedThemes: state.savedThemes.filter((item) => item.id !== theme.id),
           activeThemeId: state.activeThemeId === theme.id ? null : state.activeThemeId,
+          activeSource: state.activeThemeId === theme.id ? 'custom' : state.activeSource,
+          baseline,
         });
         setPresetStatus({ kind: 'ok', message: T.savedDeleted });
       };
@@ -2313,24 +2439,23 @@ window.__ModuleLoader__.load({
           activeName: '',
           activeSource: null,
           activeThemeId: null,
+          baseline: null,
         });
         setColorStatus({ kind: 'ok', message: T.colorResetDone });
       };
 
-      const resetMode = () => {
-        const palettes = clonePalettes(drafts);
-        const tokens = cloneTokens(state.tokens);
-        palettes[mode] = null;
-        tokens[mode] = null;
-        const anyLeft = Boolean(palettes.dark || palettes.light || tokens.dark || tokens.light);
-        patchState({
-          palettes,
-          tokens,
-          activeName: anyLeft ? (name.trim() || T.untitled).slice(0, 80) : '',
-          activeSource: anyLeft ? 'custom' : null,
-          activeThemeId: null,
+      const clearModeEdits = () => {
+        const current = getState();
+        const result = restoreModeFromBaseline(current, current.baseline, mode);
+        if (!result) return;
+        patchState(result.patch);
+        setColorStatus({
+          kind: 'ok',
+          message: format(T.clearModeEditsDone, {
+            mode: modeLabel(mode),
+            name: current.baseline.name || T.currentNone,
+          }),
         });
-        setColorStatus({ kind: 'ok', message: format(T.resetModeDone, { mode: modeLabel(mode) }) });
       };
 
       const generateLight = () => {
@@ -2343,15 +2468,18 @@ window.__ModuleLoader__.load({
 
       const onColor = (role, hex) => {
         const current = getState();
+        const baseline = current.baseline || baselineFromState(current);
         const currentPalettes = clonePalettes(current.palettes);
         const base = paletteWithFallback(currentPalettes[mode] || drafts[mode], mode);
         const next = { ...base, [role]: hex };
         const palettes = { ...currentPalettes, [mode]: next };
+        const clean = modesMatchBaseline({ palettes, tokens: current.tokens }, baseline);
         patchState({
           palettes,
-          activeName: (name.trim() || T.untitled).slice(0, 80),
-          activeSource: 'custom',
-          activeThemeId: null,
+          baseline,
+          activeName: clean ? baseline.name : (name.trim() || T.untitled).slice(0, 80),
+          activeSource: clean ? baseline.source : 'custom',
+          activeThemeId: clean ? baseline.themeId : null,
         });
       };
 
@@ -2388,6 +2516,7 @@ window.__ModuleLoader__.load({
           activeName: themeName,
           activeSource: 'custom',
           activeThemeId: null,
+          baseline: createBaseline({ palettes, tokens, name: themeName, source: 'custom', themeId: null }),
         });
         setImportStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
       };
@@ -2413,6 +2542,7 @@ window.__ModuleLoader__.load({
           activeName: themeName,
           activeSource: 'saved',
           activeThemeId: item.id,
+          baseline: createBaseline({ palettes, tokens, name: themeName, source: 'saved', themeId: item.id }),
         });
         setImportDraft(null);
         setImportName('');
@@ -2485,13 +2615,15 @@ window.__ModuleLoader__.load({
             mode,
             dshMode,
             coverage,
+            baseline,
+            modeDirty,
             name,
             onName: setName,
             onMode: setMode,
             onColor,
             onSave: saveCurrent,
             onReset: resetPalette,
-            onResetMode: resetMode,
+            onClearModeEdits: clearModeEdits,
             onGenerateLight: generateLight,
             onExport: exportCurrent,
             onExample: downloadExample,
@@ -2658,22 +2790,28 @@ window.__ModuleLoader__.load({
                 palettes && (palettes.dark || palettes.light)
                   ? { dark: normalizePalette(palettes.dark), light: normalizePalette(palettes.light) }
                   : { dark: normalizePalette(palettes), light: null };
+              const activeName = name || T.untitled;
+              const tokens = { dark: null, light: null };
               patchState({
                 palettes: both,
-                tokens: { dark: null, light: null },
-                activeName: name || T.untitled,
+                tokens,
+                activeName,
                 activeSource: 'custom',
                 activeThemeId: null,
+                baseline: createBaseline({ palettes: both, tokens, name: activeName, source: 'custom', themeId: null }),
               });
             },
             applyMode(mode, palette, name) {
               const palettes = clonePalettes(getState().palettes);
               palettes[mode] = normalizePalette(palette);
+              const tokens = getState().tokens;
+              const activeName = name || T.untitled;
               patchState({
                 palettes,
-                activeName: name || T.untitled,
+                activeName,
                 activeSource: 'custom',
                 activeThemeId: null,
+                baseline: createBaseline({ palettes, tokens, name: activeName, source: 'custom', themeId: null }),
               });
             },
             reset() {
@@ -2683,6 +2821,7 @@ window.__ModuleLoader__.load({
                 activeName: '',
                 activeSource: null,
                 activeThemeId: null,
+                baseline: null,
               });
             },
           };
@@ -2725,6 +2864,12 @@ window.__ModuleLoader__.load({
       sanitizeTokens,
       sanitizeTokensByMode,
       sanitizeSavedThemes,
+      sanitizeBaseline,
+      createBaseline,
+      baselineFromState,
+      hasModeEdits,
+      modesMatchBaseline,
+      restoreModeFromBaseline,
       paletteContrastWarning,
       paletteContrastWarnings,
       deriveLightPalette,

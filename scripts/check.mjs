@@ -142,15 +142,19 @@ const ctx = {
 
 plugin.apply(ctx);
 const migrated = window.__dshPureTheme.state;
-assert.equal(migrated.v, 4, 'settings migrate to v4');
+assert.equal(migrated.v, 5, 'settings migrate to v5');
 assert.equal(migrated.palettes.dark.sidebar, '#111111', 'legacy palette becomes the dark palette');
 assert.equal(migrated.palettes.light, null, 'legacy settings get no invented light palette');
+assert.equal(migrated.baseline.name, 'Legacy theme');
+assert.equal(migrated.baseline.source, 'custom');
+assert.equal(migrated.baseline.palettes.dark.sidebar, '#111111', 'legacy colours become the baseline');
 assert.equal(migrated.savedThemes[0].palettes.dark.canvas, '#202020', 'saved themes migrate to the dark palette');
 assert.equal(migrated.savedThemes[0].palettes.light, null, 'saved themes stay dark-only');
 assert.equal(migrated.activeName, 'Legacy theme');
 assert.ok(storage.has('dsh-pure-theme:settings:v1'), 'legacy settings are copied to the new key');
 const persisted = JSON.parse(storage.get('dsh-pure-theme:settings:v1'));
-assert.equal(persisted.v, 4, 'migrated settings are persisted as v4');
+assert.equal(persisted.v, 5, 'migrated settings are persisted as v5');
+assert.equal(persisted.baseline.palettes.dark.sidebar, '#111111', 'the migrated baseline is persisted');
 assert.equal(persisted.palettes.dark.sidebar, '#111111');
 assert.equal(persisted.palettes.light, null);
 assert.deepEqual(injections, ['settings.section'], 'registers into the top-level settings section slot');
@@ -195,6 +199,9 @@ assert.equal(api.MESSAGES.en.modeLight, 'Light');
 assert.equal(api.MESSAGES.zh.modeLight, '浅色');
 assert.equal(api.MESSAGES.en.modeBoth, 'Dark + light');
 assert.equal(api.MESSAGES.zh.modeBoth, '深色 + 浅色');
+assert.equal(api.MESSAGES.en.clearModeEdits, 'Clear current mode edits');
+assert.equal(api.MESSAGES.zh.clearModeEdits, '清除当前深浅模式配色编辑');
+assert.equal(api.MESSAGES.zh.resetMode, undefined, 'the native per-mode reset copy is gone');
 
 const enKeys = Object.keys(api.MESSAGES.en).sort();
 const zhKeys = Object.keys(api.MESSAGES.zh).sort();
@@ -317,7 +324,80 @@ const defaultState = api.defaultState();
 assert.deepEqual(defaultState.savedThemes, []);
 assert.deepEqual(defaultState.palettes, { dark: null, light: null });
 assert.deepEqual(defaultState.tokens, { dark: null, light: null });
+assert.equal(defaultState.baseline, null);
+assert.equal(defaultState.v, 5);
 assert.ok(!('glitter' in defaultState), 'glitter is gone');
+
+// --- baseline / discard current-mode edits ---------------------------------
+const basePalettes = {
+  dark: { canvas: '#101010', sidebar: '#111111', textPrimary: '#FFFFFF' },
+  light: { canvas: '#F8F8F8', sidebar: '#EFEFEF', textPrimary: '#101010' },
+};
+const inkBaseline = api.createBaseline({
+  palettes: basePalettes,
+  tokens: { dark: null, light: null },
+  name: 'Ink',
+  source: 'saved',
+  themeId: 'a',
+});
+assert.equal(inkBaseline.name, 'Ink');
+assert.equal(inkBaseline.themeId, 'a');
+assert.equal(api.hasModeEdits({ palettes: basePalettes, tokens: { dark: null, light: null } }, inkBaseline, 'dark'), false);
+
+const editedDark = {
+  palettes: { dark: { ...basePalettes.dark, canvas: '#000000' }, light: basePalettes.light },
+  tokens: { dark: null, light: null },
+};
+assert.equal(api.hasModeEdits(editedDark, inkBaseline, 'dark'), true);
+assert.equal(api.hasModeEdits(editedDark, inkBaseline, 'light'), false, 'the other mode is untouched');
+const restoredDark = api.restoreModeFromBaseline(editedDark, inkBaseline, 'dark');
+assert.equal(restoredDark.clean, true);
+assert.equal(restoredDark.patch.palettes.dark.canvas, '#101010');
+assert.equal(restoredDark.patch.activeSource, 'saved', 'the theme is active again');
+assert.equal(restoredDark.patch.activeThemeId, 'a');
+
+const editedBoth = {
+  palettes: { dark: { ...basePalettes.dark, canvas: '#000000' }, light: { ...basePalettes.light, canvas: '#FFFFFF' } },
+  tokens: { dark: null, light: null },
+};
+const restoredOne = api.restoreModeFromBaseline(editedBoth, inkBaseline, 'dark');
+assert.equal(restoredOne.clean, false);
+assert.equal(restoredOne.patch.palettes.dark.canvas, '#101010');
+assert.equal(restoredOne.patch.palettes.light.canvas, '#FFFFFF', 'the light edit survives');
+assert.equal(restoredOne.patch.activeSource, 'custom');
+assert.equal(restoredOne.patch.activeThemeId, null);
+const restoredBoth = api.restoreModeFromBaseline(restoredOne.patch, inkBaseline, 'light');
+assert.equal(restoredBoth.clean, true);
+assert.equal(restoredBoth.patch.palettes.light.canvas, '#F8F8F8');
+assert.equal(restoredBoth.patch.activeThemeId, 'a');
+
+const tokenEdit = {
+  palettes: basePalettes,
+  tokens: { dark: { '--dsw-alias-bg-base': '#000000' }, light: null },
+};
+assert.equal(api.hasModeEdits(tokenEdit, inkBaseline, 'dark'), true, 'token edits count too');
+assert.equal(api.restoreModeFromBaseline(tokenEdit, inkBaseline, 'dark').patch.tokens.dark, null);
+
+const sanitizedBaseline = api.sanitizeBaseline({
+  palettes: { dark: basePalettes.dark },
+  tokens: null,
+  name: ' Ink ',
+  source: 'saved',
+  themeId: 'a',
+});
+assert.equal(sanitizedBaseline.name, 'Ink');
+assert.equal(sanitizedBaseline.palettes.light, null);
+assert.equal(api.sanitizeBaseline(null), null);
+
+const nativeBaseline = api.createBaseline({
+  palettes: { dark: null, light: null },
+  tokens: { dark: null, light: null },
+  name: '',
+  source: null,
+  themeId: null,
+});
+assert.equal(api.hasModeEdits({ palettes: { dark: basePalettes.dark, light: null }, tokens: { dark: null, light: null } }, nativeBaseline, 'dark'), true);
+assert.equal(api.restoreModeFromBaseline({ palettes: { dark: basePalettes.dark, light: null }, tokens: { dark: null, light: null } }, nativeBaseline, 'dark').patch.palettes.dark, null);
 
 // --- theme files -----------------------------------------------------------
 const example = JSON.parse(readFileSync(join(root, 'examples/jade-desk.json'), 'utf8'));

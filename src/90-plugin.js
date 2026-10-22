@@ -78,22 +78,28 @@ const plugin = {
             palettes && (palettes.dark || palettes.light)
               ? { dark: normalizePalette(palettes.dark), light: normalizePalette(palettes.light) }
               : { dark: normalizePalette(palettes), light: null };
+          const activeName = name || T.untitled;
+          const tokens = { dark: null, light: null };
           patchState({
             palettes: both,
-            tokens: { dark: null, light: null },
-            activeName: name || T.untitled,
+            tokens,
+            activeName,
             activeSource: 'custom',
             activeThemeId: null,
+            baseline: createBaseline({ palettes: both, tokens, name: activeName, source: 'custom', themeId: null }),
           });
         },
         applyMode(mode, palette, name) {
           const palettes = clonePalettes(getState().palettes);
           palettes[mode] = normalizePalette(palette);
+          const tokens = getState().tokens;
+          const activeName = name || T.untitled;
           patchState({
             palettes,
-            activeName: name || T.untitled,
+            activeName,
             activeSource: 'custom',
             activeThemeId: null,
+            baseline: createBaseline({ palettes, tokens, name: activeName, source: 'custom', themeId: null }),
           });
         },
         reset() {
@@ -103,6 +109,7 @@ const plugin = {
             activeName: '',
             activeSource: null,
             activeThemeId: null,
+            baseline: null,
           });
         },
       };
@@ -145,6 +152,12 @@ plugin.__internals = {
   sanitizeTokens,
   sanitizeTokensByMode,
   sanitizeSavedThemes,
+  sanitizeBaseline,
+  createBaseline,
+  baselineFromState,
+  hasModeEdits,
+  modesMatchBaseline,
+  restoreModeFromBaseline,
   paletteContrastWarning,
   paletteContrastWarnings,
   deriveLightPalette,

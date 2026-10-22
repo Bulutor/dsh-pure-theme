@@ -153,6 +153,7 @@ for (const needle of [
 ]) {
   assert.ok(html.includes(needle), `page contains "${needle}"`);
 }
+assert.ok(!html.includes('恢复此模式'), 'the native per-mode reset is gone');
 for (const removed of [
   '极简主题',
   '一个安静的地方',
@@ -191,6 +192,7 @@ window.__dshPureTheme.apply(
 const dualHtml = renderToStaticMarkup(React.createElement(components.PureThemePage));
 assert.ok(dualHtml.includes('Dual palette'), 'dual theme name is shown');
 assert.ok(dualHtml.includes('深色 + 浅色'), 'dual theme has a both-mode badge');
+assert.ok(dualHtml.includes('清除当前深浅模式配色编辑'), 'the colours card offers a per-mode edit reset');
 
 document.body.hasAttribute = () => false;
 const lightHtml = renderToStaticMarkup(React.createElement(components.PureThemePage));

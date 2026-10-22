@@ -1,7 +1,9 @@
 // ---------------------------------------------------------------------------
 // Persistence: settings in localStorage, named themes in the same document.
-// v4 stores one optional palette per colour scheme; v3's single dark palette
-// migrates to `palettes.dark` so existing themes never change their meaning.
+// v5 stores one optional palette per colour scheme plus the `baseline` of the
+// theme as it was applied, so one mode can be reset to its unedited colours
+// without touching the other. v3's single dark palette migrates to
+// `palettes.dark` so existing themes never change their meaning.
 // ---------------------------------------------------------------------------
 
 // The package was renamed; carry a profile's saved themes over once instead of
@@ -19,12 +21,13 @@ function defaultTokens() {
 
 function defaultState() {
   return {
-    v: 4,
+    v: 5,
     palettes: defaultPalettes(),
     tokens: defaultTokens(),
     activeName: '',
     activeSource: null,
     activeThemeId: null,
+    baseline: null,
     savedThemes: [],
   };
 }
@@ -82,9 +85,17 @@ function loadState() {
       activeName,
       activeSource,
       activeThemeId: typeof parsed.activeThemeId === 'string' ? parsed.activeThemeId : null,
+      baseline: sanitizeBaseline(parsed.baseline),
       savedThemes: sanitizeSavedThemes(parsed.savedThemes),
     };
-    if (migrated || parsed.v !== 4 || !parsed.palettes) saveState(next);
+    // v4 and older never stored a baseline. Treat the colours already on screen
+    // as the unedited state so existing users see the new control immediately;
+    // the first later edit still has a sensible starting point.
+    if (!next.baseline && (palettes.dark || palettes.light || tokens.dark || tokens.light)) {
+      next.baseline = baselineFromState(next);
+      migrated = true;
+    }
+    if (migrated || parsed.v !== 5 || !parsed.palettes) saveState(next);
     return next;
   } catch {
     return base;
@@ -97,6 +108,107 @@ function saveState(state) {
   } catch {
     // A full or blocked localStorage must not break the settings page.
   }
+}
+
+// ---------------------------------------------------------------------------
+// Baseline: the theme's colours at the moment it was applied. The colours card
+// edits one mode at a time, so this is what "discard the edits in this mode"
+// restores. It is deliberately a snapshot, not a reference: deleting or
+// overwriting a saved theme must not change what the button restores.
+// ---------------------------------------------------------------------------
+
+function clonePalettes(palettes) {
+  return {
+    dark: palettes && palettes.dark ? { ...palettes.dark } : null,
+    light: palettes && palettes.light ? { ...palettes.light } : null,
+  };
+}
+
+function cloneTokens(tokens) {
+  return {
+    dark: tokens && tokens.dark ? { ...tokens.dark } : null,
+    light: tokens && tokens.light ? { ...tokens.light } : null,
+  };
+}
+
+function createBaseline({ palettes, tokens, name, source, themeId } = {}) {
+  return {
+    palettes: clonePalettes(palettes),
+    tokens: cloneTokens(tokens),
+    name: typeof name === 'string' ? name.trim().slice(0, 80) : '',
+    source: ['preset', 'saved', 'custom'].includes(source) ? source : null,
+    themeId: typeof themeId === 'string' && themeId ? themeId : null,
+  };
+}
+
+function baselineFromState(value) {
+  return createBaseline({
+    palettes: value.palettes,
+    tokens: value.tokens,
+    name: value.activeName,
+    source: value.activeSource,
+    themeId: value.activeThemeId,
+  });
+}
+
+function sanitizeBaseline(input) {
+  if (!input || typeof input !== 'object') return null;
+  if (!('palettes' in input) && !('tokens' in input)) return null;
+  const name = typeof input.name === 'string' ? input.name.trim().slice(0, 80) : '';
+  const source = ['preset', 'saved', 'custom'].includes(input.source) ? input.source : null;
+  return {
+    palettes: sanitizePalettes(input.palettes),
+    tokens: sanitizeTokensByMode(input.tokens),
+    name,
+    source,
+    themeId: typeof input.themeId === 'string' && input.themeId ? input.themeId : null,
+  };
+}
+
+/** Shallow value comparison for palette roles and token names. */
+function sameStringMap(left, right) {
+  if (!left || !right) return !left && !right;
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) return false;
+  return leftKeys.every((key) => left[key] === right[key]);
+}
+
+function hasModeEdits(value, baseline, mode) {
+  if (!baseline || (mode !== 'dark' && mode !== 'light')) return false;
+  return !(
+    sameStringMap(value.palettes && value.palettes[mode], baseline.palettes[mode]) &&
+    sameStringMap(value.tokens && value.tokens[mode], baseline.tokens[mode])
+  );
+}
+
+function modesMatchBaseline(value, baseline) {
+  if (!baseline) return false;
+  return MODES.every((mode) => !hasModeEdits(value, baseline, mode));
+}
+
+/**
+ * Build the state patch for discarding one mode's edits. `clean` says whether
+ * both modes now match the baseline, which decides whether the theme can be
+ * marked as active again.
+ */
+function restoreModeFromBaseline(value, baseline, mode) {
+  if (!baseline || (mode !== 'dark' && mode !== 'light')) return null;
+  const palettes = clonePalettes(value.palettes);
+  const tokens = cloneTokens(value.tokens);
+  palettes[mode] = baseline.palettes[mode] ? { ...baseline.palettes[mode] } : null;
+  tokens[mode] = baseline.tokens[mode] ? { ...baseline.tokens[mode] } : null;
+  const clean = modesMatchBaseline({ palettes, tokens }, baseline);
+  return {
+    clean,
+    patch: {
+      palettes,
+      tokens,
+      activeName: clean ? baseline.name : (value.activeName || baseline.name || '').slice(0, 80),
+      activeSource: clean ? baseline.source : 'custom',
+      activeThemeId: clean ? baseline.themeId : null,
+    },
+  };
 }
 
 function sanitizePalette(input) {

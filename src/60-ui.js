@@ -50,20 +50,6 @@ function CurrentThemeBadge({ name, coverage }) {
   );
 }
 
-function clonePalettes(palettes) {
-  return {
-    dark: palettes && palettes.dark ? { ...palettes.dark } : null,
-    light: palettes && palettes.light ? { ...palettes.light } : null,
-  };
-}
-
-function cloneTokens(tokens) {
-  return {
-    dark: tokens && tokens.dark ? { ...tokens.dark } : null,
-    light: tokens && tokens.light ? { ...tokens.light } : null,
-  };
-}
-
 function modesOf(value) {
   const palettes = value && value.palettes ? value.palettes : value || {};
   const modes = [];
@@ -416,13 +402,15 @@ function ColorEditor({
   mode,
   dshMode,
   coverage,
+  baseline,
+  modeDirty,
   name,
   onName,
   onMode,
   onColor,
   onSave,
   onReset,
-  onResetMode,
+  onClearModeEdits,
   onGenerateLight,
   onExport,
   onExample,
@@ -488,7 +476,19 @@ function ColorEditor({
     h(
       'div',
       { className: 'mst-row' },
-      coverage[mode] ? h('button', { type: 'button', className: 'mst-btn', onClick: onResetMode }, T.resetMode) : null,
+      baseline
+        ? h(
+            'button',
+            {
+              type: 'button',
+              className: 'mst-btn',
+              disabled: !modeDirty,
+              title: modeDirty ? undefined : T.clearModeEditsIdle,
+              onClick: onClearModeEdits,
+            },
+            T.clearModeEdits,
+          )
+        : null,
       h('button', { type: 'button', className: 'mst-btn', onClick: onReset }, T.colorReset),
       h('button', { type: 'button', className: 'mst-btn', onClick: onExport }, T.exportCurrent),
       h('button', { type: 'button', className: 'mst-btn mst-btn-ghost', onClick: onExample }, T.downloadExample),
@@ -544,16 +544,20 @@ function PureThemePage() {
   }, [updateInfo.checked]);
 
   const coverage = { dark: Boolean(drafts.dark), light: Boolean(drafts.light) };
+  const baseline = state.baseline;
+  const modeDirty = baseline ? hasModeEdits(state, baseline, mode) : false;
 
   const applyPreset = (agent, theme) => {
     const palettes = clonePalettes(theme.palettes);
     const tokens = cloneTokens(theme.tokens);
+    const activeName = `${agent.displayName} · ${theme.displayName}`;
     patchState({
       palettes,
       tokens,
-      activeName: `${agent.displayName} · ${theme.displayName}`,
+      activeName,
       activeSource: 'preset',
       activeThemeId: null,
+      baseline: createBaseline({ palettes, tokens, name: activeName, source: 'preset', themeId: null }),
     });
     setPresetStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
   };
@@ -567,6 +571,7 @@ function PureThemePage() {
       activeName: theme.name,
       activeSource: 'saved',
       activeThemeId: theme.id,
+      baseline: createBaseline({ palettes, tokens, name: theme.name, source: 'saved', themeId: theme.id }),
     });
     setPresetStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
   };
@@ -591,15 +596,22 @@ function PureThemePage() {
       activeName: themeName,
       activeSource: 'saved',
       activeThemeId: item.id,
+      baseline: createBaseline({ palettes, tokens, name: themeName, source: 'saved', themeId: item.id }),
     });
     setColorStatus({ kind: 'ok', message: T.colorSavedName.replace('{name}', () => themeName) });
   };
 
   const deleteSaved = (theme) => {
     if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(T.savedDeleteConfirm)) return;
+    const baseline =
+      state.baseline && state.baseline.themeId === theme.id
+        ? { ...state.baseline, themeId: null, source: 'custom' }
+        : state.baseline;
     patchState({
       savedThemes: state.savedThemes.filter((item) => item.id !== theme.id),
       activeThemeId: state.activeThemeId === theme.id ? null : state.activeThemeId,
+      activeSource: state.activeThemeId === theme.id ? 'custom' : state.activeSource,
+      baseline,
     });
     setPresetStatus({ kind: 'ok', message: T.savedDeleted });
   };
@@ -629,24 +641,23 @@ function PureThemePage() {
       activeName: '',
       activeSource: null,
       activeThemeId: null,
+      baseline: null,
     });
     setColorStatus({ kind: 'ok', message: T.colorResetDone });
   };
 
-  const resetMode = () => {
-    const palettes = clonePalettes(drafts);
-    const tokens = cloneTokens(state.tokens);
-    palettes[mode] = null;
-    tokens[mode] = null;
-    const anyLeft = Boolean(palettes.dark || palettes.light || tokens.dark || tokens.light);
-    patchState({
-      palettes,
-      tokens,
-      activeName: anyLeft ? (name.trim() || T.untitled).slice(0, 80) : '',
-      activeSource: anyLeft ? 'custom' : null,
-      activeThemeId: null,
+  const clearModeEdits = () => {
+    const current = getState();
+    const result = restoreModeFromBaseline(current, current.baseline, mode);
+    if (!result) return;
+    patchState(result.patch);
+    setColorStatus({
+      kind: 'ok',
+      message: format(T.clearModeEditsDone, {
+        mode: modeLabel(mode),
+        name: current.baseline.name || T.currentNone,
+      }),
     });
-    setColorStatus({ kind: 'ok', message: format(T.resetModeDone, { mode: modeLabel(mode) }) });
   };
 
   const generateLight = () => {
@@ -659,15 +670,18 @@ function PureThemePage() {
 
   const onColor = (role, hex) => {
     const current = getState();
+    const baseline = current.baseline || baselineFromState(current);
     const currentPalettes = clonePalettes(current.palettes);
     const base = paletteWithFallback(currentPalettes[mode] || drafts[mode], mode);
     const next = { ...base, [role]: hex };
     const palettes = { ...currentPalettes, [mode]: next };
+    const clean = modesMatchBaseline({ palettes, tokens: current.tokens }, baseline);
     patchState({
       palettes,
-      activeName: (name.trim() || T.untitled).slice(0, 80),
-      activeSource: 'custom',
-      activeThemeId: null,
+      baseline,
+      activeName: clean ? baseline.name : (name.trim() || T.untitled).slice(0, 80),
+      activeSource: clean ? baseline.source : 'custom',
+      activeThemeId: clean ? baseline.themeId : null,
     });
   };
 
@@ -704,6 +718,7 @@ function PureThemePage() {
       activeName: themeName,
       activeSource: 'custom',
       activeThemeId: null,
+      baseline: createBaseline({ palettes, tokens, name: themeName, source: 'custom', themeId: null }),
     });
     setImportStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
   };
@@ -729,6 +744,7 @@ function PureThemePage() {
       activeName: themeName,
       activeSource: 'saved',
       activeThemeId: item.id,
+      baseline: createBaseline({ palettes, tokens, name: themeName, source: 'saved', themeId: item.id }),
     });
     setImportDraft(null);
     setImportName('');
@@ -801,13 +817,15 @@ function PureThemePage() {
         mode,
         dshMode,
         coverage,
+        baseline,
+        modeDirty,
         name,
         onName: setName,
         onMode: setMode,
         onColor,
         onSave: saveCurrent,
         onReset: resetPalette,
-        onResetMode: resetMode,
+        onClearModeEdits: clearModeEdits,
         onGenerateLight: generateLight,
         onExport: exportCurrent,
         onExample: downloadExample,
