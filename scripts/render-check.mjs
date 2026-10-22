@@ -133,6 +133,34 @@ plugin.apply({
 });
 const { components } = plugin.__internals;
 
+const statusHtml = renderToStaticMarkup(
+  React.createElement(components.Status, { status: { kind: 'ok', message: '已保存为「测试」。' } }),
+);
+assert.ok(statusHtml.includes('role="status"'), 'status line is a live region');
+assert.ok(statusHtml.includes('aria-live="polite"'), 'status line is announced politely');
+assert.ok(statusHtml.includes('aria-atomic="true"'), 'status line is announced atomically');
+assert.ok(statusHtml.includes('已保存为「测试」。'), 'status message is rendered');
+
+const draftHtml = renderToStaticMarkup(
+  React.createElement(components.ImportDraft, {
+    draft: {
+      name: 'Imported',
+      fileName: 'imported.json',
+      source: 'theme-file',
+      palettes: { dark: plugin.__internals.emptyPalette('dark'), light: null },
+      tokens: { dark: null, light: null },
+    },
+    name: 'Imported',
+    onName() {},
+    onFile() {},
+    onApply() {},
+    onSave() {},
+    onCancel() {},
+  }),
+);
+assert.ok(draftHtml.includes('保存到我的主题'), 'import draft offers a save button');
+assert.ok(draftHtml.includes('不会应用'), 'import draft explains that saving does not apply');
+
 const html = renderToStaticMarkup(React.createElement(components.PureThemePage));
 assert.ok(html.length > 2000, 'settings page rendered something substantial');
 for (const needle of [
@@ -141,7 +169,7 @@ for (const needle of [
   '我的主题',
   '导入主题文件',
   '配色',
-  '点击色块取色；改色会写入正在编辑的深浅模式，保存后进入「我的主题」。',
+  '点击色块取色；改色会写入正在编辑的深浅模式，保存后会应用并进入「我的主题」。',
   '模式：',
   '保存到我的主题',
   '恢复 Harness 默认',

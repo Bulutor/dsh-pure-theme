@@ -102,11 +102,18 @@ function loadState() {
   }
 }
 
+/**
+ * Persist state and report whether it reached localStorage.
+ * A full or blocked localStorage must not break the settings page, but callers
+ * that show "saved" copy need to know the write failed.
+ * @returns {boolean}
+ */
 function saveState(state) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
   } catch {
-    // A full or blocked localStorage must not break the settings page.
+    return false;
   }
 }
 
@@ -287,9 +294,105 @@ function sanitizeSavedThemes(input) {
   return out;
 }
 
+/**
+ * Build the record stored in "My themes". The record is a snapshot: later
+ * edits to the active colours must not mutate a theme the user already saved.
+ */
+function createSavedTheme({ name, palettes, tokens, source, fileName } = {}) {
+  return {
+    id: newThemeId(),
+    name,
+    palettes: clonePalettes(palettes),
+    tokens: cloneTokens(tokens),
+    source: ['vscode', 'file'].includes(source) ? source : 'custom',
+    fileName: typeof fileName === 'string' ? fileName.slice(0, 120) : '',
+    createdAt: Date.now(),
+  };
+}
+
+/** The one field an import-save is allowed to change: the saved-theme list. */
+function savedThemesPatch(state, theme) {
+  return {
+    savedThemes: [theme, ...(Array.isArray(state.savedThemes) ? state.savedThemes : [])].slice(0, 50),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Theme files.
 // ---------------------------------------------------------------------------
+
+/**
+ * Strip `//` and block comments from a JSONC theme file. The scanner keeps
+ * string contents untouched, so `https://…` in `$schema` is not mistaken for
+ * a comment. BOM handling stays in `parseThemeText`.
+ * @param {string} text
+ * @returns {string}
+ */
+function stripJsonComments(text) {
+  const source = String(text ?? '');
+  let out = '';
+  let inString = false;
+  let escaped = false;
+  let inLine = false;
+  let inBlock = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1];
+
+    if (inLine) {
+      if (char === '\n' || char === '\r') {
+        inLine = false;
+        out += char;
+      }
+      continue;
+    }
+    if (inBlock) {
+      if (char === '*' && next === '/') {
+        inBlock = false;
+        index += 1;
+      } else if (char === '\n' || char === '\r') {
+        out += char;
+      }
+      continue;
+    }
+    if (inString) {
+      out += char;
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      out += char;
+      continue;
+    }
+    if (char === '/' && next === '/') {
+      inLine = true;
+      index += 1;
+      continue;
+    }
+    if (char === '/' && next === '*') {
+      inBlock = true;
+      index += 1;
+      continue;
+    }
+    out += char;
+  }
+
+  return out;
+}
+
+/**
+ * Parse a theme file that may carry documentation comments, as the downloaded
+ * example does. Throws like JSON.parse when the remaining text is invalid.
+ * @param {string} text
+ * @returns {unknown}
+ */
+function parseThemeText(text) {
+  return JSON.parse(stripJsonComments(String(text ?? '').replace(/^\uFEFF/, '')));
+}
 
 /** VS Code colour keys → palette roles, used when a user uploads a VS Code theme. */
 const VSCODE_KEYS = [

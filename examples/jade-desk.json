@@ -30,3 +30,41 @@
     }
   }
 }
+
+/*
+  dsh-pure-theme 主题文件字段说明
+  ────────────────────────────────────────────────────────────────
+  $schema     字符串。主题格式文档地址。只给编辑器做提示，导入时忽略。
+  version     数字。文件格式版本，当前为 2。
+  name        字符串。主题名称；导入后可以在「主题名称」里改。
+  author      字符串。作者署名，可留空；只作记录，不参与渲染。
+  palettes    对象。配色对象，按深浅模式分组；dark / light 可以只写一个。
+    dark      对象。深色模式色板，DSH 处于深色时生效。
+    light     对象。浅色模式色板，DSH 处于浅色时生效。
+
+    每个模式至少写 3 个角色才会被接受；缺失的模式保持 DSH 原生配色。
+    每个角色是 #RGB、#RRGGBB 或 #RRGGBBAA 色值字符串（8 位只取前 6 位）。
+    palettes.dark / palettes.light 下的 10 个角色：
+
+      sidebar        侧边栏与标题栏底色
+      canvas         对话区与右栏底色
+      input          输入框所在面的底色
+      surface        浮起卡片、消息气泡的底色
+      surfaceAlt     菜单、Toast、浮层的底色
+      border         分隔线与卡片描边
+      textPrimary    正文与标题文字
+      textSecondary  说明、时间戳、占位符等次要文字
+      accent         按钮、链接、选中态的强调色
+      accentText     强调色填充上的文字颜色
+
+  tokens      对象，可选。按模式覆盖任意 --dsw-* 设计 token，会覆盖 palette 的映射。
+    dark      对象。深色模式的 token 覆盖，例如：
+                { "--dsw-alias-markdown-code-block": "#181818" }
+    light     对象。浅色模式的 token 覆盖，例如：
+                { "--dsw-alias-markdown-code-block": "#F2F7F4" }
+
+  说明：
+  - 导入时支持行注释与块注释，注释不会进入主题数据。
+  - 示例文件使用一套可直接导入的配色；把上面的值换成自己的颜色即可。
+  - 颜色只在本机读取，不会上传。
+*/

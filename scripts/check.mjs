@@ -202,9 +202,52 @@ assert.equal(api.MESSAGES.zh.modeBoth, '深色 + 浅色');
 assert.equal(api.MESSAGES.en.clearModeEdits, 'Clear current mode edits');
 assert.equal(api.MESSAGES.zh.clearModeEdits, '清除当前深浅模式配色编辑');
 assert.equal(api.MESSAGES.zh.resetMode, undefined, 'the native per-mode reset copy is gone');
-assert.equal(api.MESSAGES.zh.colorsDesc, '点击色块取色；改色会写入正在编辑的深浅模式，保存后进入「我的主题」。');
+assert.equal(api.MESSAGES.zh.colorsDesc, '点击色块取色；改色会写入正在编辑的深浅模式，保存后会应用并进入「我的主题」。');
 assert.equal(api.MESSAGES.zh.modeLabelPrefix, '模式：');
 assert.equal(api.MESSAGES.en.modeLabelPrefix, 'Mode:');
+assert.equal(api.MESSAGES.zh.appliedInactive, '已应用；切到{mode}查看。', 'inactive apply copy says applied, not saved');
+assert.equal(api.MESSAGES.en.appliedInactive, 'Applied; switch to {mode} to see it.');
+assert.equal(api.STATUS_TIMEOUT_MS, 3000, 'transient status lasts three seconds');
+assert.equal(api.MESSAGES.zh.colorSaveFailed, '无法写入本机存储；主题没有保存到「我的主题」。');
+assert.equal(api.MESSAGES.zh.savedExportConfirm, '把「{name}」导出为主题文件？');
+assert.equal(api.MESSAGES.en.savedExportConfirm, 'Export “{name}” as a theme file?');
+assert.equal(api.MESSAGES.zh.exportCurrentConfirm, '把当前配色导出为主题文件？');
+assert.equal(api.MESSAGES.en.exportCurrentConfirm, 'Export the current colours as a theme file?');
+assert.equal(api.MESSAGES.zh.colorSavedApplied, '已保存并应用「{name}」。');
+assert.equal(api.MESSAGES.en.colorSavedApplied, 'Saved and applied “{name}”.');
+assert.ok(api.MESSAGES.zh.importSaveHint.includes('不会应用'), 'import save hint says saving does not apply');
+assert.ok(api.MESSAGES.en.importSaveHint.includes('does not apply'), 'English import save hint says saving does not apply');
+assert.ok(api.MESSAGES.zh.colorSavedName.includes('已保存'), 'import save copy stays a save-only message');
+
+activeLocale = 'zh';
+assert.equal(
+  api.importErrorMessage('no-palette'),
+  `${api.MESSAGES.zh.importError} ${api.MESSAGES.zh.importReasonNoPalette}`,
+  'import reasons are localized',
+);
+assert.ok(!api.importErrorMessage('no-palette').includes('no-palette'), 'machine codes never reach the UI');
+assert.equal(
+  api.importErrorMessage('something-new'),
+  `${api.MESSAGES.zh.importError} ${api.MESSAGES.zh.importReasonUnknown}`,
+  'unknown import reasons fall back to localized copy',
+);
+assert.equal(
+  api.statusForApply({ dark: legacyPalette, light: legacyPalette }, 'dark'),
+  api.MESSAGES.zh.appliedBoth,
+  'a dual theme reports both modes',
+);
+assert.equal(
+  api.statusForApply({ dark: legacyPalette, light: null }, 'dark'),
+  '已应用；浅色保持原生。',
+  'a native-mode notice names the other mode',
+);
+assert.equal(
+  api.statusForApply({ dark: legacyPalette, light: null }, 'light'),
+  '已应用；切到深色查看。',
+  'an inactive apply asks the user to switch modes',
+);
+assert.equal(api.statusForApply({ dark: null, light: null }, 'dark'), api.MESSAGES.zh.applied, 'token-only applies without a palette');
+activeLocale = 'en';
 
 const enKeys = Object.keys(api.MESSAGES.en).sort();
 const zhKeys = Object.keys(api.MESSAGES.zh).sort();
@@ -323,6 +366,24 @@ const many = Array.from({ length: 60 }, (_, index) => ({
 }));
 assert.equal(api.sanitizeSavedThemes(many).length, 50, 'saved themes are capped at 50');
 
+const importedItem = api.createSavedTheme({
+  name: 'Imported',
+  palettes: { dark: { canvas: '#101010', sidebar: '#111111', textPrimary: '#FFFFFF' }, light: null },
+  tokens: { dark: null, light: null },
+  source: 'file',
+  fileName: 'imported.json',
+});
+assert.equal(importedItem.source, 'file');
+assert.equal(importedItem.fileName, 'imported.json');
+const importPatch = api.savedThemesPatch({ savedThemes: [] }, importedItem);
+assert.deepEqual(Object.keys(importPatch), ['savedThemes'], 'import save only patches the saved list');
+assert.equal('palettes' in importPatch, false, 'import save does not touch the active palette');
+assert.equal('activeThemeId' in importPatch, false, 'import save does not activate the theme');
+assert.equal('baseline' in importPatch, false, 'import save does not rewrite the baseline');
+assert.equal(importPatch.savedThemes[0].name, 'Imported');
+const cappedPatch = api.savedThemesPatch({ savedThemes: many.map((item, index) => ({ ...item, id: `cap-${index}` })) }, importedItem);
+assert.equal(cappedPatch.savedThemes.length, 50, 'the saved list stays capped after an import');
+
 const defaultState = api.defaultState();
 assert.deepEqual(defaultState.savedThemes, []);
 assert.deepEqual(defaultState.palettes, { dark: null, light: null });
@@ -403,11 +464,54 @@ assert.equal(api.hasModeEdits({ palettes: { dark: basePalettes.dark, light: null
 assert.equal(api.restoreModeFromBaseline({ palettes: { dark: basePalettes.dark, light: null }, tokens: { dark: null, light: null } }, nativeBaseline, 'dark').patch.palettes.dark, null);
 
 // --- theme files -----------------------------------------------------------
-const example = JSON.parse(readFileSync(join(root, 'examples/jade-desk.json'), 'utf8'));
+const exampleSource = readFileSync(join(root, 'examples/jade-desk.json'), 'utf8');
+assert.ok(exampleSource.includes('dsh-pure-theme 主题文件字段说明'), 'repository example carries the field reference');
+const example = api.parseThemeText(exampleSource);
 const parsedExample = api.readThemeFile(example);
 assert.equal(parsedExample.ok, true, 'example theme parses');
 assert.equal(parsedExample.theme.palettes.dark.canvas, '#222F2A');
 assert.ok(parsedExample.theme.palettes.light, 'example theme carries a light palette');
+
+const commented = api.parseThemeText(`\uFEFF{
+  // line comment before a property
+  "$schema": "https://example.com/a//b",
+  "version": 2,
+  "name": "Commented",
+  "palettes": {
+    "dark": {
+      "sidebar": "#111111",
+      "canvas": "#202020",
+      "textPrimary": "#FFFFFF"
+    }
+  }
+}
+/* trailing block comment
+   with "quotes", https://example.com and // slashes
+*/`);
+assert.equal(commented.$schema, 'https://example.com/a//b', 'comment stripping preserves URLs in strings');
+const commentedTheme = api.readThemeFile(commented);
+assert.equal(commentedTheme.ok, true, 'a JSONC theme file imports');
+assert.equal(commentedTheme.theme.name, 'Commented');
+assert.equal(commentedTheme.theme.palettes.dark.canvas, '#202020');
+
+const generatedExample = api.exampleThemeText('Annotated');
+const exampleCommentStart = generatedExample.indexOf('/*');
+assert.ok(generatedExample.trimEnd().endsWith('*/'), 'example ends with the field reference');
+assert.ok(exampleCommentStart > 0, 'example has a trailing field reference');
+assert.ok(generatedExample.slice(0, exampleCommentStart).trim().endsWith('}'), 'field reference sits below the JSON object');
+assert.ok(generatedExample.slice(exampleCommentStart).trimEnd().endsWith('*/'), 'no JSON follows the field reference');
+const exampleComments = generatedExample.slice(exampleCommentStart);
+for (const role of api.PALETTE_ROLES) {
+  assert.ok(exampleComments.includes(role.key), `example reference documents ${role.key}`);
+}
+for (const key of ['$schema', 'version', 'name', 'author', 'palettes', 'tokens']) {
+  assert.ok(exampleComments.includes(key), `example reference documents ${key}`);
+}
+const parsedGenerated = api.readThemeFile(api.parseThemeText(generatedExample));
+assert.equal(parsedGenerated.ok, true, 'the annotated example imports');
+assert.equal(parsedGenerated.theme.name, 'Annotated');
+assert.equal(parsedGenerated.theme.palettes.dark.canvas, api.NATIVE_PALETTES.dark.canvas);
+assert.equal(parsedGenerated.theme.palettes.light.canvas, api.NATIVE_PALETTES.light.canvas);
 
 const legacyFile = api.readThemeFile({
   name: 'Old dark',
@@ -535,6 +639,8 @@ assert.ok(icon.includes('<circle'), 'icon uses the palette glyph');
 assert.ok(api.UI_CSS.includes(`[${api.NAV_ATTR}]`), 'page stylesheet carries the nav icon rule');
 assert.ok(api.UI_CSS.includes('.mst-modes'), 'page stylesheet carries the mode switch');
 assert.ok(api.UI_CSS.includes('.mst-mode-badge'), 'page stylesheet carries the mode badge');
+assert.ok(api.UI_CSS.includes('.mst-saved-list{max-height:164px'), 'saved themes are capped at three rows');
+assert.ok(api.UI_CSS.includes('.mst-saved-list::-webkit-scrollbar'), 'saved list has a styled side scrollbar');
 
 // --- presets ---------------------------------------------------------------
 assert.equal(api.AGENTS.length, 9, 'nine agents ship as presets (Harness + 8 others)');
@@ -579,6 +685,22 @@ function contrastBetween(a, b) {
   const lb = luminance(b);
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
+
+// --- storage failures ------------------------------------------------------
+const realSetItem = window.localStorage.setItem;
+const stateBeforeFailedSave = window.__dshPureTheme.state;
+window.localStorage.setItem = () => {
+  throw new Error('quota exceeded');
+};
+assert.equal(api.saveState(api.defaultState()), false, 'saveState reports a blocked localStorage');
+assert.equal(api.tryPatchState({ activeName: 'not committed' }), false, 'a failed save is not committed');
+assert.equal(
+  window.__dshPureTheme.state.activeName,
+  stateBeforeFailedSave.activeName,
+  'in-memory state stays unchanged when persistence fails',
+);
+window.localStorage.setItem = realSetItem;
+assert.equal(api.saveState(api.defaultState()), true, 'saveState reports a successful write');
 
 console.log(
   `ok — ${effects.length} effects, ${registrations.length} section, ${Object.keys(api.MESSAGES).length} locales, ${api.AGENTS.length} agents / ${lightPresets} light presets`,

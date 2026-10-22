@@ -30,21 +30,44 @@ function getUpdateInfo() {
   return updateInfo;
 }
 
-/** Replace part of the persisted state and repaint. */
+/**
+ * Replace part of the persisted state and repaint.
+ * @returns {boolean} whether the state was written to localStorage
+ */
 function patchState(patch) {
   state = { ...state, ...patch };
-  saveState(state);
+  const persisted = saveState(state);
+  // Other windows cannot load a state that never reached localStorage, so do
+  // not ask them to reload and silently replace the in-memory theme.
+  if (persisted) broadcastState();
+  renderStylesheet();
+  notify();
+  return persisted;
+}
+
+/**
+ * Persist a patch first and only then commit it in memory. Explicit "save"
+ * actions use this so a blocked localStorage cannot leave a theme in the list
+ * that was never written, or make the UI claim success.
+ * @returns {boolean}
+ */
+function tryPatchState(patch) {
+  const next = { ...state, ...patch };
+  if (!saveState(next)) return false;
+  state = next;
   broadcastState();
   renderStylesheet();
   notify();
+  return true;
 }
 
 function replaceState(next) {
   state = next;
-  saveState(state);
-  broadcastState();
+  const persisted = saveState(state);
+  if (persisted) broadcastState();
   renderStylesheet();
   notify();
+  return persisted;
 }
 
 function ensureStyleTag() {

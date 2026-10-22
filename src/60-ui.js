@@ -9,6 +9,18 @@
 
 const ROLE_BY_KEY = Object.fromEntries(PALETTE_ROLES.map((role) => [role.key, role]));
 
+// Transient feedback: long enough to read, short enough that a stale
+// "saved/applied" message never survives the next edit.
+const STATUS_TIMEOUT_MS = 3000;
+
+const IMPORT_REASON_KEYS = {
+  'not-an-object': 'importReasonNotObject',
+  'no-palette': 'importReasonNoPalette',
+  'vscode-no-usable-colors': 'importReasonVscodeNoColors',
+  'invalid-json': 'importReasonInvalidJson',
+  'read-failed': 'importReasonReadFailed',
+};
+
 const EXAMPLE_THEME = {
   $schema: 'https://github.com/Bulutor/dsh-pure-theme/blob/main/docs/theme-format.md',
   version: 2,
@@ -19,6 +31,60 @@ const EXAMPLE_THEME = {
     light: { ...NATIVE_PALETTES.light },
   },
 };
+
+/**
+ * Field reference appended to the downloadable example. It stays outside the
+ * JSON object, and `parseThemeText` strips it on import, so the file can be
+ * read by this plugin while still opening as a documented template elsewhere.
+ */
+const EXAMPLE_NOTES = [
+  '/*',
+  '  dsh-pure-theme 主题文件字段说明',
+  '  ────────────────────────────────────────────────────────────────',
+  '  $schema     字符串。主题格式文档地址。只给编辑器做提示，导入时忽略。',
+  '  version     数字。文件格式版本，当前为 2。',
+  '  name        字符串。主题名称；导入后可以在「主题名称」里改。',
+  '  author      字符串。作者署名，可留空；只作记录，不参与渲染。',
+  '  palettes    对象。配色对象，按深浅模式分组；dark / light 可以只写一个。',
+  '    dark      对象。深色模式色板，DSH 处于深色时生效。',
+  '    light     对象。浅色模式色板，DSH 处于浅色时生效。',
+  '',
+  '    每个模式至少写 3 个角色才会被接受；缺失的模式保持 DSH 原生配色。',
+  '    每个角色是 #RGB、#RRGGBB 或 #RRGGBBAA 色值字符串（8 位只取前 6 位）。',
+  '    palettes.dark / palettes.light 下的 10 个角色：',
+  '',
+  '      sidebar        侧边栏与标题栏底色',
+  '      canvas         对话区与右栏底色',
+  '      input          输入框所在面的底色',
+  '      surface        浮起卡片、消息气泡的底色',
+  '      surfaceAlt     菜单、Toast、浮层的底色',
+  '      border         分隔线与卡片描边',
+  '      textPrimary    正文与标题文字',
+  '      textSecondary  说明、时间戳、占位符等次要文字',
+  '      accent         按钮、链接、选中态的强调色',
+  '      accentText     强调色填充上的文字颜色',
+  '',
+  '  tokens      对象，可选。按模式覆盖任意 --dsw-* 设计 token，会覆盖 palette 的映射。',
+  '    dark      对象。深色模式的 token 覆盖，例如：',
+  '                { "--dsw-alias-markdown-code-block": "#181818" }',
+  '    light     对象。浅色模式的 token 覆盖，例如：',
+  '                { "--dsw-alias-markdown-code-block": "#F2F7F4" }',
+  '',
+  '  说明：',
+  '  - 导入时支持行注释与块注释，注释不会进入主题数据。',
+  '  - 示例文件使用一套可直接导入的配色；把上面的值换成自己的颜色即可。',
+  '  - 颜色只在本机读取，不会上传。',
+  '*/',
+].join('\n');
+
+function exampleThemeText(name) {
+  const file = {
+    ...EXAMPLE_THEME,
+    name: name || EXAMPLE_THEME.name,
+    palettes: clonePalettes(EXAMPLE_THEME.palettes),
+  };
+  return `${JSON.stringify(file, null, 2)}\n\n${EXAMPLE_NOTES}\n`;
+}
 
 function Card({ title, desc, right, children }) {
   return h(
@@ -37,7 +103,59 @@ function Card({ title, desc, right, children }) {
 function Status({ status }) {
   if (!status) return null;
   const tone = status.kind === 'error' ? 'mst-error' : status.kind === 'warn' ? 'mst-warn' : 'mst-ok';
-  return h('div', { className: `mst-status ${tone}` }, status.message);
+  return h(
+    'div',
+    { className: `mst-status ${tone}`, role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' },
+    status.message,
+  );
+}
+
+/**
+ * Status state that clears itself. A new message restarts the timer, and the
+ * cleanup prevents a pending timer from touching an unmounted page.
+ */
+function useStatus() {
+  const [status, setStatus] = useState(null);
+  const timer = useRef(0);
+
+  const clear = useCallback(() => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = 0;
+    }
+    setStatus(null);
+  }, []);
+
+  const show = useCallback((next) => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = 0;
+    }
+    setStatus(next);
+    if (!next) return;
+    timer.current = setTimeout(() => {
+      timer.current = 0;
+      setStatus(null);
+    }, STATUS_TIMEOUT_MS);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+
+  return [status, show, clear];
+}
+
+function importErrorText(reason) {
+  const key = IMPORT_REASON_KEYS[reason];
+  return key ? T[key] : T.importReasonUnknown;
+}
+
+function importErrorMessage(reason) {
+  return `${T.importError} ${importErrorText(reason)}`;
 }
 
 function CurrentThemeBadge({ name, coverage }) {
@@ -394,6 +512,7 @@ function ImportDraft({ draft, name, onName, onFile, onApply, onSave, onCancel })
       h('button', { type: 'button', className: 'mst-btn', onClick: onApply }, T.importApply),
       h('button', { type: 'button', className: 'mst-btn mst-btn-ghost', onClick: onCancel }, T.importCancel),
     ),
+    h('div', { className: 'mst-hint' }, T.importSaveHint),
   );
 }
 
@@ -510,8 +629,8 @@ function fileSlug(value) {
   return slug || 'theme';
 }
 
-function downloadJson(filename, data) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -520,6 +639,16 @@ function downloadJson(filename, data) {
   anchor.click();
   anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadJson(filename, data) {
+  downloadText(filename, JSON.stringify(data, null, 2));
+}
+
+/** `window.confirm` is intentionally optional so SSR and tests can render. */
+function confirmAction(message) {
+  if (typeof window === 'undefined' || typeof window.confirm !== 'function') return true;
+  return window.confirm(message);
 }
 
 function PureThemePage() {
@@ -531,9 +660,12 @@ function PureThemePage() {
   const [name, setName] = useState(state.activeName || '');
   const [importDraft, setImportDraft] = useState(null);
   const [importName, setImportName] = useState('');
-  const [presetStatus, setPresetStatus] = useState(null);
-  const [importStatus, setImportStatus] = useState(null);
-  const [colorStatus, setColorStatus] = useState(null);
+  // Agent presets and saved themes live in two different sections, so their
+  // feedback must not share one slot under the Agent picker.
+  const [agentStatus, showAgentStatus, clearAgentStatus] = useStatus();
+  const [savedStatus, showSavedStatus, clearSavedStatus] = useStatus();
+  const [importStatus, showImportStatus, clearImportStatus] = useStatus();
+  const [colorStatus, showColorStatus, clearColorStatus] = useStatus();
 
   useEffect(() => {
     setDrafts(clonePalettes(state.palettes));
@@ -563,7 +695,9 @@ function PureThemePage() {
       activeThemeId: null,
       baseline: createBaseline({ palettes, tokens, name: activeName, source: 'preset', themeId: null }),
     });
-    setPresetStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
+    clearColorStatus();
+    clearSavedStatus();
+    showAgentStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
   };
 
   const applySaved = (theme) => {
@@ -577,7 +711,9 @@ function PureThemePage() {
       activeThemeId: theme.id,
       baseline: createBaseline({ palettes, tokens, name: theme.name, source: 'saved', themeId: theme.id }),
     });
-    setPresetStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
+    clearColorStatus();
+    clearAgentStatus();
+    showSavedStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
   };
 
   const saveCurrent = () => {
@@ -585,57 +721,63 @@ function PureThemePage() {
     const palettes = clonePalettes(drafts);
     if (!palettes.dark && !palettes.light) palettes[mode] = emptyPalette(mode);
     const tokens = cloneTokens(state.tokens);
-    const item = {
-      id: newThemeId(),
-      name: themeName,
+    const item = createSavedTheme({ name: themeName, palettes, tokens, source: 'custom' });
+    const saved = tryPatchState({
+      ...savedThemesPatch(state, item),
       palettes,
       tokens,
-      source: 'custom',
-      createdAt: Date.now(),
-    };
-    patchState({
-      palettes,
-      tokens,
-      savedThemes: [item, ...state.savedThemes].slice(0, 50),
       activeName: themeName,
       activeSource: 'saved',
       activeThemeId: item.id,
       baseline: createBaseline({ palettes, tokens, name: themeName, source: 'saved', themeId: item.id }),
     });
-    setColorStatus({ kind: 'ok', message: T.colorSavedName.replace('{name}', () => themeName) });
+    clearAgentStatus();
+    clearSavedStatus();
+    showColorStatus(
+      saved
+        ? { kind: 'ok', message: format(T.colorSavedApplied, { name: themeName }) }
+        : { kind: 'error', message: T.colorSaveFailed },
+    );
   };
 
   const deleteSaved = (theme) => {
-    if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(T.savedDeleteConfirm)) return;
+    clearSavedStatus();
+    if (!confirmAction(T.savedDeleteConfirm)) return;
     const baseline =
       state.baseline && state.baseline.themeId === theme.id
         ? { ...state.baseline, themeId: null, source: 'custom' }
         : state.baseline;
+    const wasActive = state.activeThemeId === theme.id;
     patchState({
       savedThemes: state.savedThemes.filter((item) => item.id !== theme.id),
-      activeThemeId: state.activeThemeId === theme.id ? null : state.activeThemeId,
-      activeSource: state.activeThemeId === theme.id ? 'custom' : state.activeSource,
+      activeThemeId: wasActive ? null : state.activeThemeId,
+      activeSource: wasActive ? 'custom' : state.activeSource,
       baseline,
     });
-    setPresetStatus({ kind: 'ok', message: T.savedDeleted });
+    if (wasActive) clearColorStatus();
+    showSavedStatus({ kind: 'ok', message: T.savedDeleted });
   };
 
   const exportSaved = (theme) => {
+    clearSavedStatus();
+    if (!confirmAction(format(T.savedExportConfirm, { name: theme.name }))) return;
     downloadJson(
       `${fileSlug(theme.name)}.json`,
       exportThemeFile({ palettes: theme.palettes, tokens: theme.tokens, activeName: theme.name }),
     );
-    setPresetStatus({ kind: 'ok', message: T.colorExported });
+    showSavedStatus({ kind: 'ok', message: T.colorExported });
   };
 
   const exportCurrent = () => {
+    clearColorStatus();
+    if (!confirmAction(T.exportCurrentConfirm)) return;
     const palettes = clonePalettes(drafts);
     if (!palettes.dark && !palettes.light) palettes[mode] = emptyPalette(mode);
     downloadJson(
       `${fileSlug(name || T.untitled)}.json`,
       exportThemeFile({ palettes, tokens: state.tokens, activeName: name || T.untitled }),
     );
-    setColorStatus({ kind: 'ok', message: T.colorExported });
+    showColorStatus({ kind: 'ok', message: T.colorExported });
   };
 
   const resetPalette = () => {
@@ -647,7 +789,9 @@ function PureThemePage() {
       activeThemeId: null,
       baseline: null,
     });
-    setColorStatus({ kind: 'ok', message: T.colorResetDone });
+    clearAgentStatus();
+    clearSavedStatus();
+    showColorStatus({ kind: 'ok', message: T.colorResetDone });
   };
 
   const clearModeEdits = () => {
@@ -655,7 +799,9 @@ function PureThemePage() {
     const result = restoreModeFromBaseline(current, current.baseline, mode);
     if (!result) return;
     patchState(result.patch);
-    setColorStatus({
+    clearAgentStatus();
+    clearSavedStatus();
+    showColorStatus({
       kind: 'ok',
       message: format(T.clearModeEditsDone, {
         mode: modeLabel(mode),
@@ -669,7 +815,7 @@ function PureThemePage() {
     if (!dark) return;
     const light = deriveLightPalette(dark);
     setDrafts((value) => ({ ...value, light }));
-    setColorStatus({ kind: 'ok', message: T.lightDraftCreated });
+    showColorStatus({ kind: 'ok', message: T.lightDraftCreated });
   };
 
   const onColor = (role, hex) => {
@@ -680,6 +826,12 @@ function PureThemePage() {
     const next = { ...base, [role]: hex };
     const palettes = { ...currentPalettes, [mode]: next };
     const clean = modesMatchBaseline({ palettes, tokens: current.tokens }, baseline);
+    // The edit itself invalidates any "saved/applied/recognised" message and
+    // changes the theme to custom, so every transient status becomes stale.
+    clearColorStatus();
+    clearAgentStatus();
+    clearSavedStatus();
+    clearImportStatus();
     patchState({
       palettes,
       baseline,
@@ -689,26 +841,46 @@ function PureThemePage() {
     });
   };
 
+  const changeMode = (nextMode) => {
+    setMode(nextMode);
+    clearColorStatus();
+  };
+
   const importFile = async (file) => {
     if (!file) return;
+    let text;
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text.replace(/^\uFEFF/, ''));
-      const result = readThemeFile(parsed);
-      if (!result.ok) {
-        setImportStatus({ kind: 'error', message: `${T.importError} (${result.reason})` });
-        return;
-      }
-      const theme = result.theme;
-      setImportDraft({ ...theme, fileName: file.name });
-      setImportName(theme.name || file.name.replace(/\.[^.]+$/, ''));
-      setImportStatus({
-        kind: 'ok',
-        message: format(T.importModes, { modes: coverageLabel(theme) }),
-      });
+      text = await file.text();
     } catch (error) {
-      setImportStatus({ kind: 'error', message: `${T.importError} ${String(error?.message || error)}` });
+      console.warn('[dsh-pure-theme] could not read the theme file', error);
+      showImportStatus({ kind: 'error', message: importErrorMessage('read-failed') });
+      return;
     }
+
+    let parsed;
+    try {
+      parsed = parseThemeText(text);
+    } catch (error) {
+      console.warn('[dsh-pure-theme] theme file is not valid JSON', error);
+      showImportStatus({ kind: 'error', message: importErrorMessage('invalid-json') });
+      return;
+    }
+
+    const result = readThemeFile(parsed);
+    if (!result.ok) {
+      // Keep the machine code in the console for debugging, never in the UI.
+      console.warn('[dsh-pure-theme] theme file rejected', result.reason);
+      showImportStatus({ kind: 'error', message: importErrorMessage(result.reason) });
+      return;
+    }
+
+    const theme = result.theme;
+    setImportDraft({ ...theme, fileName: file.name });
+    setImportName(theme.name || file.name.replace(/\.[^.]+$/, ''));
+    showImportStatus({
+      kind: 'ok',
+      message: format(T.importModes, { modes: coverageLabel(theme) }),
+    });
   };
 
   const applyImported = () => {
@@ -724,43 +896,39 @@ function PureThemePage() {
       activeThemeId: null,
       baseline: createBaseline({ palettes, tokens, name: themeName, source: 'custom', themeId: null }),
     });
-    setImportStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
+    clearAgentStatus();
+    clearSavedStatus();
+    clearColorStatus();
+    showImportStatus({ kind: 'ok', message: statusForApply(palettes, dshMode) });
   };
 
   const saveImported = () => {
     if (!importDraft) return;
     const themeName = (importName.trim() || importDraft.name || T.untitled).slice(0, 80);
-    const palettes = clonePalettes(importDraft.palettes);
-    const tokens = cloneTokens(importDraft.tokens);
-    const item = {
-      id: newThemeId(),
+    const item = createSavedTheme({
       name: themeName,
-      palettes,
-      tokens,
+      palettes: importDraft.palettes,
+      tokens: importDraft.tokens,
       source: importDraft.source === 'vscode' ? 'vscode' : 'file',
-      fileName: importDraft.fileName || '',
-      createdAt: Date.now(),
-    };
-    patchState({
-      palettes,
-      tokens,
-      savedThemes: [item, ...state.savedThemes].slice(0, 50),
-      activeName: themeName,
-      activeSource: 'saved',
-      activeThemeId: item.id,
-      baseline: createBaseline({ palettes, tokens, name: themeName, source: 'saved', themeId: item.id }),
+      fileName: importDraft.fileName,
     });
-    setImportDraft(null);
-    setImportName('');
-    setImportStatus({ kind: 'ok', message: T.colorSavedName.replace('{name}', () => themeName) });
+    // Saving is deliberately separate from applying: only the saved-theme list
+    // changes here, so the colours currently on screen stay untouched.
+    const saved = tryPatchState(savedThemesPatch(state, item));
+    if (saved) {
+      setImportDraft(null);
+      setImportName('');
+      clearSavedStatus();
+    }
+    showImportStatus(
+      saved
+        ? { kind: 'ok', message: format(T.colorSavedName, { name: themeName }) }
+        : { kind: 'error', message: T.colorSaveFailed },
+    );
   };
 
   const downloadExample = () => {
-    downloadJson('example-theme.json', {
-      ...EXAMPLE_THEME,
-      name: T.exampleName,
-      palettes: clonePalettes(EXAMPLE_THEME.palettes),
-    });
+    downloadText('example-theme.json', exampleThemeText(T.exampleName));
   };
 
   const current = state.activeName || T.currentNone;
@@ -784,14 +952,20 @@ function PureThemePage() {
         }),
       },
       h(PresetPicker, { state, onApply: applyPreset }),
-      h(Status, { status: presetStatus }),
+      h(Status, { status: agentStatus }),
       h('div', { className: 'mst-divider' }),
-      h('div', { className: 'mst-body' }, h('div', { className: 'mst-card-title' }, T.savedTitle), h(SavedThemeList, {
-        state,
-        onApply: applySaved,
-        onExport: exportSaved,
-        onDelete: deleteSaved,
-      })),
+      h(
+        'div',
+        { className: 'mst-body' },
+        h('div', { className: 'mst-card-title' }, T.savedTitle),
+        h(Status, { status: savedStatus }),
+        h(SavedThemeList, {
+          state,
+          onApply: applySaved,
+          onExport: exportSaved,
+          onDelete: deleteSaved,
+        }),
+      ),
       h('div', { className: 'mst-divider' }),
       h(
         'div',
@@ -807,7 +981,7 @@ function PureThemePage() {
           onCancel: () => {
             setImportDraft(null);
             setImportName('');
-            setImportStatus(null);
+            clearImportStatus();
           },
         }),
         h(Status, { status: importStatus }),
@@ -825,7 +999,7 @@ function PureThemePage() {
         modeDirty,
         name,
         onName: setName,
-        onMode: setMode,
+        onMode: changeMode,
         onColor,
         onSave: saveCurrent,
         onReset: resetPalette,

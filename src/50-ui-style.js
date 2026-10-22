@@ -55,8 +55,13 @@ const UI_CSS = `
 .mst-hint{font-size:11px;line-height:17px;color:var(--dsw-alias-label-secondary)}
 .mst-mono{font-family:var(--ds-font-family-code,monospace)}
 .mst-empty{padding:10px 12px;border:.5px dashed var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-md);font-size:11px;line-height:17px;color:var(--dsw-alias-label-secondary);text-align:center}
-.mst-saved{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--dsw-radius-md);border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
-.mst-saved-list{max-height:224px;overflow-y:auto;padding-right:2px}
+.mst-saved{display:flex;align-items:center;gap:8px;flex:none;height:48px;box-sizing:border-box;padding:7px 8px;border-radius:var(--dsw-radius-md);border:.5px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2)}
+/* Three 48px rows + two 10px gaps; the fourth row scrolls. */
+.mst-saved-list{max-height:164px;overflow-y:auto;overscroll-behavior:contain;padding-right:2px;scrollbar-width:thin;scrollbar-color:var(--dsw-alias-border-l3) transparent}
+.mst-saved-list::-webkit-scrollbar{width:6px}
+.mst-saved-list::-webkit-scrollbar-track{background:transparent}
+.mst-saved-list::-webkit-scrollbar-thumb{background:var(--dsw-alias-border-l3);border-radius:999px}
+.mst-saved-list::-webkit-scrollbar-thumb:hover{background:var(--dsw-alias-label-tertiary)}
 .mst-saved[data-active=true]{border-color:var(--dsw-alias-brand-primary)}
 .mst-saved-main{flex:1;min-width:0}
 .mst-saved-name{font-size:12px;line-height:18px;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
