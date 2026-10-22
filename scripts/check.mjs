@@ -644,6 +644,17 @@ assert.ok(api.UI_CSS.includes('.mst-saved-list::-webkit-scrollbar'), 'saved list
 
 // --- presets ---------------------------------------------------------------
 assert.equal(api.AGENTS.length, 9, 'nine agents ship as presets (Harness + 8 others)');
+const dshAgent = api.AGENTS.find((agent) => agent.id === 'dsh');
+assert.equal(dshAgent.themes.length, 2, 'DeepSeek Harness ships a native and a Jade appearance');
+const nativeTheme = dshAgent.themes.find((theme) => theme.id === 'native');
+assert.equal(nativeTheme.displayName, '原生 · Native');
+assert.equal(nativeTheme.source, 'DeepSeek Harness');
+assert.deepEqual(nativeTheme.palettes.dark, api.NATIVE_PALETTES.dark, 'native preset uses the real DSH dark palette');
+assert.deepEqual(nativeTheme.palettes.light, api.NATIVE_PALETTES.light, 'native preset uses the real DSH light palette');
+const jadeTheme = dshAgent.themes.find((theme) => theme.id === 'jade-desk');
+assert.equal(jadeTheme.displayName, '墨玉 · Jade');
+assert.equal(jadeTheme.source, 'dsh-pure-theme', 'the Jade preset credits dsh-pure-theme');
+assert.deepEqual(jadeTheme.aliases, ['墨玉 · Jade desk', '墨玉-深 + 浅'], 'earlier Jade names still mark the theme as active');
 let lightPresets = 0;
 for (const agent of api.AGENTS) {
   assert.ok(agent.id && agent.displayName && agent.source, `agent ${agent.id} has display metadata`);
@@ -666,7 +677,7 @@ for (const agent of api.AGENTS) {
     lightPresets += 1;
   }
 }
-assert.equal(lightPresets, 9, 'all nine presets carry a light palette');
+assert.equal(lightPresets, 10, 'all ten presets carry a light palette');
 
 function isHexLike(value) {
   return typeof value === 'string' && /^#[0-9A-F]{6}$/i.test(value);

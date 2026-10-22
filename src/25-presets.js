@@ -16,8 +16,21 @@ const AGENTS = [
     confidence: 'high',
     themes: [
       {
+        id: 'native',
+        displayName: '原生 · Native',
+        source: 'DeepSeek Harness',
+        palettes: {
+          dark: emptyPalette('dark'),
+          light: emptyPalette('light'),
+        },
+      },
+      {
         id: 'jade-desk',
-        displayName: '墨玉 · Jade desk',
+        displayName: '墨玉 · Jade',
+        source: 'dsh-pure-theme',
+        // Keep earlier chip names so an already-applied Jade theme still shows
+        // its "active" marker after the renames.
+        aliases: ['墨玉 · Jade desk', '墨玉-深 + 浅'],
         palettes: {
           dark: {
             sidebar: '#1D2724',

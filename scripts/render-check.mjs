@@ -161,6 +161,20 @@ const draftHtml = renderToStaticMarkup(
 assert.ok(draftHtml.includes('保存到我的主题'), 'import draft offers a save button');
 assert.ok(draftHtml.includes('不会应用'), 'import draft explains that saving does not apply');
 
+const presetHtml = renderToStaticMarkup(
+  React.createElement(components.PresetPicker, {
+    state: {
+      activeName: 'DeepSeek Harness · 墨玉 · Jade desk',
+      activeSource: 'preset',
+    },
+    onApply() {},
+  }),
+);
+assert.ok(presetHtml.includes('原生 · Native'), 'DeepSeek Harness offers a native appearance');
+assert.ok(presetHtml.includes('墨玉 · Jade'), 'the Jade appearance keeps its original name');
+assert.ok(presetHtml.includes('灵感来源: dsh-pure-theme'), 'the Jade chip credits dsh-pure-theme');
+assert.ok(presetHtml.includes('aria-pressed="true"'), 'an old Jade active name still marks the renamed chip');
+
 const html = renderToStaticMarkup(React.createElement(components.PureThemePage));
 assert.ok(html.length > 2000, 'settings page rendered something substantial');
 for (const needle of [

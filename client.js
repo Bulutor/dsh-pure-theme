@@ -796,8 +796,21 @@ window.__ModuleLoader__.load({
         confidence: 'high',
         themes: [
           {
+            id: 'native',
+            displayName: '原生 · Native',
+            source: 'DeepSeek Harness',
+            palettes: {
+              dark: emptyPalette('dark'),
+              light: emptyPalette('light'),
+            },
+          },
+          {
             id: 'jade-desk',
-            displayName: '墨玉 · Jade desk',
+            displayName: '墨玉 · Jade',
+            source: 'dsh-pure-theme',
+            // Keep earlier chip names so an already-applied Jade theme still shows
+            // its "active" marker after the renames.
+            aliases: ['墨玉 · Jade desk', '墨玉-深 + 浅'],
             palettes: {
               dark: {
                 sidebar: '#1D2724',
@@ -2306,7 +2319,6 @@ window.__ModuleLoader__.load({
       }, [state.activeName]);
       const agent = AGENTS.find((item) => item.id === agentId) || AGENTS[0];
       if (!agent) return null;
-      const provenance = `${T.presetsInspired}: ${agent.source} · ${tr(`confidence${agent.confidence[0].toUpperCase()}${agent.confidence.slice(1)}`)}`;
       return h(
         'div',
         { className: 'mst-body' },
@@ -2329,10 +2341,16 @@ window.__ModuleLoader__.load({
           'div',
           { className: 'mst-chips' },
           agent.themes.map((theme) => {
-            const active = state.activeSource === 'preset' && state.activeName === `${agent.displayName} · ${theme.displayName}`;
+            const names = [theme.displayName, ...(Array.isArray(theme.aliases) ? theme.aliases : [])];
+            const active =
+              state.activeSource === 'preset' &&
+              names.some((name) => state.activeName === `${agent.displayName} · ${name}`);
             const palette = theme.palettes.dark || theme.palettes.light;
             const dots = [palette.sidebar, palette.canvas, palette.accent, palette.textPrimary];
             const coverage = coverageLabel(theme);
+            const confidence = theme.confidence || agent.confidence;
+            const source = theme.source || agent.source;
+            const provenance = `${T.presetsInspired}: ${source} · ${tr(`confidence${confidence[0].toUpperCase()}${confidence.slice(1)}`)}`;
             return h(
               'button',
               {

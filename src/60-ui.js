@@ -350,7 +350,6 @@ function PresetPicker({ state, onApply }) {
   }, [state.activeName]);
   const agent = AGENTS.find((item) => item.id === agentId) || AGENTS[0];
   if (!agent) return null;
-  const provenance = `${T.presetsInspired}: ${agent.source} · ${tr(`confidence${agent.confidence[0].toUpperCase()}${agent.confidence.slice(1)}`)}`;
   return h(
     'div',
     { className: 'mst-body' },
@@ -373,10 +372,16 @@ function PresetPicker({ state, onApply }) {
       'div',
       { className: 'mst-chips' },
       agent.themes.map((theme) => {
-        const active = state.activeSource === 'preset' && state.activeName === `${agent.displayName} · ${theme.displayName}`;
+        const names = [theme.displayName, ...(Array.isArray(theme.aliases) ? theme.aliases : [])];
+        const active =
+          state.activeSource === 'preset' &&
+          names.some((name) => state.activeName === `${agent.displayName} · ${name}`);
         const palette = theme.palettes.dark || theme.palettes.light;
         const dots = [palette.sidebar, palette.canvas, palette.accent, palette.textPrimary];
         const coverage = coverageLabel(theme);
+        const confidence = theme.confidence || agent.confidence;
+        const source = theme.source || agent.source;
+        const provenance = `${T.presetsInspired}: ${source} · ${tr(`confidence${confidence[0].toUpperCase()}${confidence.slice(1)}`)}`;
         return h(
           'button',
           {
